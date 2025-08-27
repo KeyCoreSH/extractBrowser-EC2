@@ -1,4 +1,4 @@
-# 🚀 ExtractBrowser EC2
+# 🚀 ExtractBrowser EC2 v0.1
 
 Sistema inteligente de extração e estruturação de dados de documentos brasileiros rodando no EC2.
 
