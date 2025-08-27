@@ -24,7 +24,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Módulos locais
-from utils.pdf_extractor import extract_pdf_preview, get_pdf_info, validate_pdf, extract_text_from_pdf
+from utils.pdf_extractor import extract_pdf_preview, get_pdf_info, validate_pdf, extract_text_from_pdf, extract_text_from_image
 from utils.s3_manager import S3Manager
 from services.ai_service import AIService
 
@@ -222,7 +222,7 @@ def upload_document():
             else:
                 logger.error("❌ Erro ao extrair preview do PDF")
             
-            # Extrair texto completo
+            # Extrair texto completo do PDF
             text_content = extract_text_from_pdf(file_content, max_pages=3)
             if text_content:
                 result['extracted_text'] = text_content[:1000] + "..." if len(text_content) > 1000 else text_content
@@ -253,6 +253,52 @@ def upload_document():
                     result['structured_data'] = {}
                     if not ai_service:
                         result['ai_error'] = "Serviço de IA não disponível"
+        
+        # Processar IMAGEM - extrair texto via OCR e estruturar dados
+        elif is_image:
+            logger.info("🔍 Processando imagem com OCR...")
+            
+            # A imagem original já foi salva, usar como preview também
+            result['preview_key'] = original_key
+            result['preview_url'] = s3_manager.get_public_url(original_key)
+            
+            # Extrair texto da imagem usando AWS Textract
+            text_content = extract_text_from_image(file_content)
+            if text_content:
+                result['extracted_text'] = text_content[:1000] + "..." if len(text_content) > 1000 else text_content
+                logger.info(f"📝 Texto extraído da imagem: {len(text_content)} caracteres")
+                
+                # Estruturar dados com IA se disponível
+                if ai_service and text_content:
+                    logger.info("🤖 Estruturando dados com IA...")
+                    structured_result = ai_service.structure_data(text_content, document_type)
+                    
+                    if structured_result['success']:
+                        result['structured_data'] = structured_result['data']
+                        result['ai_confidence'] = structured_result['confidence']
+                        result['ai_metadata'] = structured_result['metadata']
+                        
+                        # Validar dados estruturados
+                        validation = ai_service.validate_structured_data(
+                            structured_result['data'], 
+                            document_type
+                        )
+                        result['validation'] = validation
+                        
+                        logger.info(f"✅ Dados estruturados com confiança: {structured_result['confidence']}")
+                    else:
+                        result['structured_data'] = {}
+                        result['ai_error'] = structured_result['error']
+                        logger.warning(f"❌ Falha na estruturação: {structured_result['error']}")
+                else:
+                    result['structured_data'] = {}
+                    if not ai_service:
+                        result['ai_error'] = "Serviço de IA não disponível"
+            else:
+                logger.warning("⚠️ Não foi possível extrair texto da imagem")
+                result['extracted_text'] = ""
+                result['structured_data'] = {}
+                result['ai_error'] = "Falha na extração de texto da imagem"
         
         processing_time = int((time.time() - start_time) * 1000)
         result['processing_time_ms'] = processing_time

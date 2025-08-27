@@ -256,6 +256,59 @@ def validate_pdf(pdf_bytes: bytes) -> Tuple[bool, str]:
     except Exception as e:
         return False, f"Erro ao validar PDF: {e}"
 
+def extract_text_from_image(image_bytes: bytes) -> str:
+    """
+    Extrai texto de uma imagem (JPG, PNG, etc.) usando AWS Textract
+    
+    Args:
+        image_bytes: Bytes da imagem
+        
+    Returns:
+        Texto extraído da imagem
+    """
+    try:
+        logger.info("🔍 Iniciando extração de texto da imagem...")
+        
+        # Verificar tamanho da imagem (Textract tem limite de 10MB)
+        if len(image_bytes) > 10 * 1024 * 1024:  # 10MB
+            logger.warning("⚠️ Imagem muito grande para Textract, redimensionando...")
+            
+            # Redimensionar imagem se necessário
+            from PIL import Image
+            import io
+            
+            img = Image.open(io.BytesIO(image_bytes))
+            
+            # Calcular novo tamanho mantendo proporção
+            max_dimension = 2048
+            width, height = img.size
+            if width > max_dimension or height > max_dimension:
+                ratio = min(max_dimension / width, max_dimension / height)
+                new_size = (int(width * ratio), int(height * ratio))
+                img = img.resize(new_size, Image.Resampling.LANCZOS)
+                
+                # Salvar imagem redimensionada
+                output = io.BytesIO()
+                img.save(output, format='PNG', optimize=True, quality=85)
+                image_bytes = output.getvalue()
+                
+                logger.info(f"📏 Imagem redimensionada para {new_size}, novo tamanho: {len(image_bytes)} bytes")
+        
+        # Usar Textract para extrair texto
+        text_content = _extract_text_with_textract(image_bytes)
+        
+        if text_content:
+            logger.info(f"✅ Texto extraído da imagem: {len(text_content)} caracteres")
+            return text_content
+        else:
+            logger.warning("⚠️ Nenhum texto encontrado na imagem")
+            return ""
+            
+    except Exception as e:
+        logger.error(f"❌ Erro na extração de texto da imagem: {str(e)}")
+        return ""
+
+
 # Função de teste para desenvolvimento
 def test_extraction():
     """Função de teste para verificar se a extração funciona"""
