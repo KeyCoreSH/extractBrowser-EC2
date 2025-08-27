@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ExtractBrowser EC2 - Extração de Documentos</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .header {
+            text-align: center;
+            color: #333;
+            border-bottom: 2px solid #007cba;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+        .upload-section {
+            border: 2px dashed #ccc;
+            border-radius: 8px;
+            padding: 40px;
+            text-align: center;
+            margin: 20px 0;
+            background: #fafafa;
+            transition: all 0.3s;
+        }
+        .upload-section:hover {
+            border-color: #007cba;
+            background: #f0f8ff;
+        }
+        .upload-section.dragover {
+            border-color: #007cba;
+            background: #e3f2fd;
+        }
+        .btn {
+            background: #007cba;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+        .btn:hover { background: #005a87; }
+        .btn:disabled { background: #ccc; cursor: not-allowed; }
+        .btn.secondary {
+            background: #6c757d;
+        }
+        .btn.secondary:hover {
+            background: #545b62;
+        }
+        .status {
+            padding: 12px;
+            border-radius: 5px;
+            margin: 15px 0;
+            font-weight: bold;
+        }
+        .status.success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .status.error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .status.loading { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        .results-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-top: 20px;
+        }
+        .result-section {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 15px;
+            background: #fafafa;
+        }
+        .result-section h3 {
+            margin-top: 0;
+            color: #333;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 10px;
+        }
+        .json-display {
+            background: #f8f9fa;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 15px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            max-height: 400px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        .preview-container {
+            text-align: center;
+            margin: 15px 0;
+        }
+        .preview-image {
+            max-width: 100%;
+            max-height: 400px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .pdf-container {
+            text-align: center;
+            margin: 15px 0;
+        }
+        .pdf-embed {
+            width: 100%;
+            height: 500px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .progress {
+            width: 100%;
+            height: 25px;
+            background: #f0f0f0;
+            border-radius: 12px;
+            overflow: hidden;
+            margin: 15px 0;
+        }
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #007cba, #0056b3);
+            transition: width 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+        }
+        .file-info {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin: 15px 0;
+            font-size: 14px;
+        }
+        .file-info .label {
+            font-weight: bold;
+            color: #666;
+        }
+        .validation-section {
+            margin-top: 15px;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .validation-success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        .validation-error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        .confidence-meter {
+            margin: 10px 0;
+        }
+        .confidence-bar {
+            height: 20px;
+            background: #f0f0f0;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        .confidence-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #dc3545, #ffc107, #28a745);
+            transition: width 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        @media (max-width: 768px) {
+            .results-grid {
+                grid-template-columns: 1fr;
+            }
+            .file-info {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 ExtractBrowser EC2</h1>
+            <p>Extração inteligente de dados de documentos brasileiros</p>
+            <div id="healthStatus">Verificando status...</div>
+        </div>
+
+        <div class="upload-section" id="uploadArea">
+            <h3>📁 Selecione ou arraste um arquivo</h3>
+            <p>Suporte para: PDF, PNG, JPG, JPEG</p>
+            <input type="file" id="fileInput" style="display: none" accept=".pdf,.png,.jpg,.jpeg">
+            <br>
+            <button class="btn" onclick="document.getElementById('fileInput').click()">
+                📤 Escolher Arquivo
+            </button>
+            
+            <div style="margin-top: 20px;">
+                <label for="documentType" style="display: block; margin-bottom: 5px; font-weight: bold;">
+                    Tipo de Documento:
+                </label>
+                <select id="documentType" style="padding: 8px; border-radius: 4px; border: 1px solid #ddd;">
+                    <option value="cnh">CNH - Carteira Nacional de Habilitação</option>
+                    <option value="cpf">CPF - Cadastro de Pessoa Física</option>
+                    <option value="cnpj">CNPJ - Cadastro Nacional de Pessoa Jurídica</option>
+                    <option value="antt">ANTT - Certificado de Condutor</option>
+                    <option value="crv">CRV - Certificado de Registro de Veículo</option>
+                    <option value="fatura_energia">Fatura de Energia Elétrica</option>
+                    <option value="generic">Genérico</option>
+                </select>
+            </div>
+        </div>
+
+        <div id="uploadStatus" style="display: none;"></div>
+        <div id="uploadProgress" style="display: none;">
+            <div class="progress">
+                <div class="progress-bar" id="progressBar">0%</div>
+            </div>
+        </div>
+
+        <div id="results" style="display: none;">
+            <div class="results-grid">
+                <!-- Informações do Arquivo -->
+                <div class="result-section">
+                    <h3>📄 Informações do Arquivo</h3>
+                    <div id="fileInfo"></div>
+                </div>
+
+                <!-- Visualização do Preview -->
+                <div class="result-section">
+                    <h3>🖼️ Preview</h3>
+                    <div id="previewContainer"></div>
+                </div>
+
+                <!-- Dados Estruturados -->
+                <div class="result-section">
+                    <h3>🤖 Dados Extraídos</h3>
+                    <div id="structuredData"></div>
+                    <div id="validationInfo"></div>
+                </div>
+
+                <!-- Texto Extraído -->
+                <div class="result-section">
+                    <h3>📝 Texto Extraído</h3>
+                    <div id="extractedText"></div>
+                </div>
+            </div>
+
+            <!-- Documento Original -->
+            <div class="result-section" style="margin-top: 20px;">
+                <h3>📋 Documento Original</h3>
+                <div id="originalDocument"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE_URL = 'http://localhost:2345';
+        let currentResult = null;
+
+        // Verificar status da API
+        async function checkHealth() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/health`);
+                const data = await response.json();
+                
+                const statusEl = document.getElementById('healthStatus');
+                const deps = data.dependencies;
+                
+                let statusHtml = `
+                    <strong>Status:</strong> ${data.status} | 
+                    <strong>S3:</strong> ${deps.s3 ? '✅' : '❌'} | 
+                    <strong>PDF:</strong> ${deps.pdf_libs ? '✅' : '❌'} | 
+                    <strong>IA:</strong> ${deps.ai_service ? '✅' : '❌'}
+                `;
+                
+                if (deps.openai_available) {
+                    statusHtml += ' | <strong>OpenAI:</strong> ✅';
+                } else {
+                    statusHtml += ' | <strong>OpenAI:</strong> ❌ (configure OPENAI_API_KEY)';
+                }
+                
+                statusEl.innerHTML = statusHtml;
+                statusEl.className = 'status success';
+            } catch (error) {
+                document.getElementById('healthStatus').innerHTML = 
+                    '❌ Erro de conexão com o servidor';
+                document.getElementById('healthStatus').className = 'status error';
+            }
+        }
+
+        // Configurar drag and drop
+        function setupDragAndDrop() {
+            const uploadArea = document.getElementById('uploadArea');
+            
+            uploadArea.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                uploadArea.classList.add('dragover');
+            });
+            
+            uploadArea.addEventListener('dragleave', () => {
+                uploadArea.classList.remove('dragover');
+            });
+            
+            uploadArea.addEventListener('drop', (e) => {
+                e.preventDefault();
+                uploadArea.classList.remove('dragover');
+                
+                const files = e.dataTransfer.files;
+                if (files.length > 0) {
+                    handleFileSelect(files[0]);
+                }
+            });
+        }
+
+        // Configurar seleção de arquivo
+        document.getElementById('fileInput').addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleFileSelect(e.target.files[0]);
+            }
+        });
+
+        // Processar arquivo selecionado
+        function handleFileSelect(file) {
+            const documentType = document.getElementById('documentType').value;
+            uploadFile(file, documentType);
+        }
+
+        // Upload do arquivo
+        async function uploadFile(file, documentType) {
+            try {
+                showStatus('loading', '📤 Enviando arquivo...');
+                showProgress(0);
+
+                const formData = new FormData();
+                formData.append('file', file);
+                formData.append('document_type', documentType);
+
+                const response = await fetch(`${API_BASE_URL}/upload`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                showProgress(50);
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const result = await response.json();
+                showProgress(100);
+
+                if (result.success) {
+                    currentResult = result;
+                    showStatus('success', '✅ Arquivo processado com sucesso!');
+                    displayResults(result);
+                } else {
+                    throw new Error(result.message || 'Erro no processamento');
+                }
+
+            } catch (error) {
+                console.error('Erro no upload:', error);
+                showStatus('error', `❌ Erro: ${error.message}`);
+                hideProgress();
+            }
+        }
+
+        // Exibir resultados
+        function displayResults(result) {
+            document.getElementById('results').style.display = 'block';
+            
+            // Informações do arquivo
+            displayFileInfo(result);
+            
+            // Preview
+            displayPreview(result);
+            
+            // Dados estruturados
+            displayStructuredData(result);
+            
+            // Texto extraído
+            displayExtractedText(result);
+            
+            // Documento original
+            displayOriginalDocument(result);
+            
+            hideProgress();
+        }
+
+        function displayFileInfo(result) {
+            const info = `
+                <div class="file-info">
+                    <div class="label">Nome:</div>
+                    <div>${result.filename}</div>
+                    
+                    <div class="label">Tamanho:</div>
+                    <div>${formatBytes(result.size)}</div>
+                    
+                    <div class="label">Tipo:</div>
+                    <div>${result.document_type.toUpperCase()}</div>
+                    
+                    <div class="label">Processamento:</div>
+                    <div>${result.processing_time_ms}ms</div>
+                    
+                    <div class="label">Formato:</div>
+                    <div>${result.is_pdf ? 'PDF' : 'Imagem'}</div>
+                    
+                    ${result.pdf_info ? `
+                        <div class="label">Páginas:</div>
+                        <div>${result.pdf_info.page_count}</div>
+                    ` : ''}
+                </div>
+            `;
+            
+            document.getElementById('fileInfo').innerHTML = info;
+        }
+
+        function displayPreview(result) {
+            const container = document.getElementById('previewContainer');
+            
+            if (result.preview_key) {
+                const previewUrl = `${API_BASE_URL}/view/${result.preview_key}`;
+                container.innerHTML = `
+                    <div class="preview-container">
+                        <img src="${previewUrl}" alt="Preview" class="preview-image" 
+                             onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZGRkIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNiIgZmlsbD0iIzk5OSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPkVycm8gYW8gY2FycmVnYXI8L3RleHQ+PC9zdmc+'">
+                        <p><strong>URL:</strong> <a href="${previewUrl}" target="_blank">Abrir preview</a></p>
+                    </div>
+                `;
+            } else {
+                container.innerHTML = '<p>❌ Preview não disponível</p>';
+            }
+        }
+
+        function displayStructuredData(result) {
+            const container = document.getElementById('structuredData');
+            const validationContainer = document.getElementById('validationInfo');
+            
+            if (result.structured_data && Object.keys(result.structured_data).length > 0) {
+                container.innerHTML = `
+                    <div class="json-display">${JSON.stringify(result.structured_data, null, 2)}</div>
+                `;
+                
+                // Exibir informações de validação e confiança
+                if (result.validation) {
+                    const confidence = result.ai_confidence || 0;
+                    const validation = result.validation;
+                    
+                    validationContainer.innerHTML = `
+                        <div class="confidence-meter">
+                            <strong>Confiança da IA:</strong>
+                            <div class="confidence-bar">
+                                <div class="confidence-fill" style="width: ${confidence * 100}%">
+                                    ${Math.round(confidence * 100)}%
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="validation-section ${validation.is_valid ? 'validation-success' : 'validation-error'}">
+                            <strong>Validação:</strong> ${validation.is_valid ? '✅ Dados válidos' : '❌ Dados inválidos'}
+                            ${validation.errors.length > 0 ? `
+                                <br><strong>Erros:</strong>
+                                <ul>${validation.errors.map(error => `<li>${error}</li>`).join('')}</ul>
+                            ` : ''}
+                            ${validation.warnings.length > 0 ? `
+                                <br><strong>Avisos:</strong>
+                                <ul>${validation.warnings.map(warning => `<li>${warning}</li>`).join('')}</ul>
+                            ` : ''}
+                        </div>
+                    `;
+                }
+                
+            } else if (result.ai_error) {
+                container.innerHTML = `<p>❌ ${result.ai_error}</p>`;
+                validationContainer.innerHTML = '';
+            } else {
+                container.innerHTML = '<p>📝 Estruturação de dados não disponível</p>';
+                validationContainer.innerHTML = '';
+            }
+        }
+
+        function displayExtractedText(result) {
+            const container = document.getElementById('extractedText');
+            
+            if (result.extracted_text) {
+                container.innerHTML = `<div class="json-display">${result.extracted_text}</div>`;
+            } else {
+                container.innerHTML = '<p>📝 Texto não extraído</p>';
+            }
+        }
+
+        function displayOriginalDocument(result) {
+            const container = document.getElementById('originalDocument');
+            
+            if (result.original_key) {
+                const originalUrl = `${API_BASE_URL}/view/${result.original_key}`;
+                
+                if (result.is_pdf) {
+                    container.innerHTML = `
+                        <div class="pdf-container">
+                            <embed src="${originalUrl}" type="application/pdf" class="pdf-embed">
+                            <p><strong>URL:</strong> <a href="${originalUrl}" target="_blank">Abrir PDF</a></p>
+                        </div>
+                    `;
+                } else {
+                    container.innerHTML = `
+                        <div class="preview-container">
+                            <img src="${originalUrl}" alt="Documento original" class="preview-image">
+                            <p><strong>URL:</strong> <a href="${originalUrl}" target="_blank">Abrir imagem</a></p>
+                        </div>
+                    `;
+                }
+            } else {
+                container.innerHTML = '<p>❌ Documento original não disponível</p>';
+            }
+        }
+
+        // Funções auxiliares
+        function showStatus(type, message) {
+            const statusEl = document.getElementById('uploadStatus');
+            statusEl.style.display = 'block';
+            statusEl.className = `status ${type}`;
+            statusEl.textContent = message;
+        }
+
+        function showProgress(percent) {
+            const progressContainer = document.getElementById('uploadProgress');
+            const progressBar = document.getElementById('progressBar');
+            
+            progressContainer.style.display = 'block';
+            progressBar.style.width = `${percent}%`;
+            progressBar.textContent = `${percent}%`;
+        }
+
+        function hideProgress() {
+            document.getElementById('uploadProgress').style.display = 'none';
+        }
+
+        function formatBytes(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        // Inicialização
+        document.addEventListener('DOMContentLoaded', () => {
+            checkHealth();
+            setupDragAndDrop();
+        });
+    </script>
+</body>
+</html>

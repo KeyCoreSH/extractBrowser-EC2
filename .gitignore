@@ -1,0 +1,353 @@
+# ExtractBrowser EC2 - .gitignore
+
+# ========================================
+# SEGURANÇA E CREDENCIAIS
+# ========================================
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+*.p12
+*.pfx
+config.env
+secrets/
+credentials/
+
+# AWS Credentials
+.aws/
+aws-credentials.*
+
+# OpenAI API Keys
+openai-key*
+api-keys*
+
+# ========================================
+# PYTHON
+# ========================================
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+
+# Virtual environments
+venv/
+ENV/
+env/
+.venv/
+.ENV/
+.env/
+venv-*/
+virtualenv/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# IPython
+profile_default/
+ipython_config.py
+
+# pyenv
+.python-version
+
+# pipenv
+Pipfile.lock
+
+# PEP 582
+__pypackages__/
+
+# Celery stuff
+celerybeat-schedule
+celerybeat.pid
+
+# SageMath parsed files
+*.sage.py
+
+# Spyder project settings
+.spyderproject
+.spyproject
+
+# Rope project settings
+.ropeproject
+
+# mkdocs documentation
+/site
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Pyre type checker
+.pyre/
+
+# ========================================
+# NODE.JS / NPM (caso tenha frontend JS)
+# ========================================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.npm
+.yarn/
+
+# ========================================
+# ARQUIVOS DE TESTE E DADOS
+# ========================================
+# Arquivos de teste
+test_files/
+temp_files/
+uploads/
+downloads/
+samples/
+*.pdf
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.bmp
+*.tiff
+*.webp
+
+# Dados temporários
+tmp/
+temp/
+cache/
+.cache/
+
+# Logs
+logs/
+*.log
+server.log
+app.log
+debug.log
+error.log
+
+# ========================================
+# IDE E EDITORES
+# ========================================
+# VSCode
+.vscode/
+*.code-workspace
+
+# PyCharm
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# Vim
+*.swp
+*.swo
+*~
+
+# Emacs
+*~
+\#*\#
+/.emacs.desktop
+/.emacs.desktop.lock
+*.elc
+auto-save-list
+tramp
+.\#*
+
+# Cursor
+.cursor/
+
+# ========================================
+# SISTEMAS OPERACIONAIS
+# ========================================
+# macOS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Icon?
+Thumbs.db
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+*.lnk
+
+# Linux
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*
+
+# ========================================
+# DOCKER
+# ========================================
+Dockerfile.dev
+docker-compose.override.yml
+.dockerignore
+
+# ========================================
+# TERRAFORM / INFRAESTRUTURA
+# ========================================
+# Terraform
+*.tfstate
+*.tfstate.*
+.terraform/
+.terraform.lock.hcl
+terraform.tfvars
+*.tfvars
+
+# CloudFormation
+cloudformation-outputs.json
+stack-outputs.json
+
+# ========================================
+# MONITORAMENTO E PROFILING
+# ========================================
+# Profiling
+*.prof
+*.pstats
+
+# Monitoring
+monitoring/
+metrics/
+
+# ========================================
+# BACKUP E ARQUIVOS TEMPORÁRIOS
+# ========================================
+# Backups
+*.bak
+*.backup
+*.old
+*.orig
+*.tmp
+
+# Patches
+*.patch
+*.diff
+
+# ========================================
+# PROJETO ESPECÍFICO
+# ========================================
+# Arquivos de configuração local
+config/local/
+config/dev/
+config/production/
+
+# SSL/TLS Certificates
+*.crt
+*.csr
+*.der
+*.key
+*.p7b
+*.p7c
+*.p7r
+*.spc
+
+# Base de dados local
+*.db
+*.sqlite
+*.sqlite3
+
+# Arquivos de status
+status/
+health/
+
+# Scripts de deploy locais
+deploy-local.sh
+run-local.sh
+
+# Documentação gerada
+docs/build/
+documentation/build/
+
+# ========================================
+# FERRAMENTAS DE BUILD E CI/CD
+# ========================================
+# Build artifacts
+build/
+dist/
+out/
+
+# CI/CD
+.github/workflows/local*
+.gitlab-ci-local.yml
+
+# Coverage reports
+htmlcov/
+.coverage*
+
+# ========================================
+# SERVERLESS FRAMEWORK (se usar)
+# ========================================
+.serverless/
+serverless-state.json
+
+# ========================================
+# ANALYTICS E TRACKING
+# ========================================
+# Analytics
+analytics/
+tracking/
+*.analytics
+
+# Performance monitoring
+performance/
+*.perf

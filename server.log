@@ -1,0 +1,9 @@
+2025-08-27 14:10:08,716 - INFO - 🚀 Iniciando ExtractBrowser EC2...
+2025-08-27 14:10:08,723 - INFO - Found credentials in shared credentials file: ~/.aws/credentials
+2025-08-27 14:10:08,775 - INFO - ✅ Cliente S3 inicializado para região us-east-2
+2025-08-27 14:10:08,811 - INFO - ✅ Dependências PyMuPDF e Pillow disponíveis
+2025-08-27 14:10:08,811 - INFO - 🌐 Servidor rodando na porta 8080
+ * Serving Flask app 'app'
+ * Debug mode: on
+Address already in use
+Port 8080 is in use by another program. Either identify and stop that program, or start the server with a different port.
