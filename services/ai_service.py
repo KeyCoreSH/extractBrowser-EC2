@@ -9,6 +9,7 @@ from typing import Dict, Any, Optional
 
 from prompts.base_prompt import get_base_prompt
 from prompts.cnh_prompt import get_cnh_prompt
+from prompts.cnpj_prompt import get_cnpj_prompt
 
 logger = logging.getLogger(__name__)
 
@@ -130,7 +131,9 @@ class AIService:
             
             if document_type == "CNH":
                 return get_cnh_prompt(text)
-            elif document_type in ["ANTT", "CPF", "CRV", "FATURA_ENERGIA", "CNPJ"]:
+            elif document_type == "CNPJ":
+                return get_cnpj_prompt(text)
+            elif document_type in ["ANTT", "CPF", "CRV", "FATURA_ENERGIA"]:
                 return get_base_prompt(text, document_type)
             else:
                 logger.warning(f"Tipo de documento não reconhecido: {document_type}")
@@ -237,28 +240,54 @@ class AIService:
             JSON limpo como string
         """
         try:
-            # Remover markdown e texto extra
+            # Remover espaços em branco
             content = content.strip()
             
-            # Procurar por blocos JSON
+            # Log para debug
+            logger.debug(f"Conteúdo bruto recebido (primeiros 200 chars): {content[:200]}")
+            
+            # Procurar por blocos JSON com markdown
             if "```json" in content:
                 start = content.find("```json") + 7
                 end = content.find("```", start)
                 if end != -1:
                     content = content[start:end].strip()
+                    logger.debug("JSON extraído de bloco ```json")
             elif "```" in content:
                 start = content.find("```") + 3
                 end = content.find("```", start)
                 if end != -1:
                     content = content[start:end].strip()
+                    logger.debug("JSON extraído de bloco ```")
             
-            # Procurar pelo primeiro { e último }
+            # Procurar pelo primeiro { e último } para isolar o JSON
             start = content.find("{")
             end = content.rfind("}") + 1
             
             if start != -1 and end > start:
-                content = content[start:end]
+                json_content = content[start:end]
+                logger.debug(f"JSON isolado (primeiros 100 chars): {json_content[:100]}")
+                
+                # Validar se é um JSON válido
+                try:
+                    json.loads(json_content)
+                    logger.debug("JSON validado com sucesso")
+                    return json_content
+                except json.JSONDecodeError as e:
+                    logger.warning(f"JSON inválido após limpeza: {str(e)}")
+                    # Tentar limpar caracteres problemáticos
+                    json_content = json_content.replace('\n', ' ').replace('\r', ' ')
+                    json_content = ' '.join(json_content.split())  # Normalizar espaços
+                    
+                    try:
+                        json.loads(json_content)
+                        logger.debug("JSON validado após limpeza adicional")
+                        return json_content
+                    except json.JSONDecodeError:
+                        logger.error(f"JSON continua inválido: {json_content[:200]}")
+                        return json_content
             
+            logger.warning("Não foi possível isolar JSON válido")
             return content
             
         except Exception as e:
