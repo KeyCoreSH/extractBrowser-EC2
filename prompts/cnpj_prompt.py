@@ -14,21 +14,19 @@ def get_cnpj_prompt(text: str) -> str:
         Prompt formatado para CNPJ com instruções rigorosas para JSON
     """
     
-    return f"""Você é um especialista em extração de dados de CNPJ (Cadastro Nacional da Pessoa Jurídica) brasileiros.
+    return f"""
+Você é um especialista em extração de dados de documentos de CNPJ (Cadastro Nacional da Pessoa Jurídica) brasileiros.
 
-TAREFA: Extrair informações estruturadas do texto de um documento de CNPJ em JSON perfeito.
+TAREFA: Extrair informações estruturadas do texto de um documento de CNPJ.
 
-REGRAS CRÍTICAS PARA JSON PERFEITO:
+REGRAS CRÍTICAS:
 1. Sua resposta deve conter APENAS o objeto JSON válido
 2. NÃO inclua NENHUM texto antes ou depois do JSON
-3. NÃO use formatação markdown como ```json ou ```
-4. O JSON deve ser 100% válido segundo RFC 7159
-5. Use aspas duplas para TODAS as chaves e valores string
-6. Se não encontrar uma informação, use null (sem aspas)
-7. Mantenha a estrutura EXATA do schema fornecido
-8. NÃO remova campos - use null se vazio
-9. NÃO adicione vírgulas finais nos objetos
-10. Escape caracteres especiais corretamente (\", \\, etc.)
+3. NÃO use formatação markdown como ```json
+4. O JSON deve ser 100% válido, sem vírgulas finais
+5. Use aspas duplas para todas as chaves e valores string
+6. Se não encontrar uma informação, use null para o campo
+7. Mantenha a estrutura exata do schema fornecido
 
 INFORMAÇÕES ESPECÍFICAS DO CNPJ:
 - CNPJ (formato xx.xxx.xxx/xxxx-xx)
@@ -38,48 +36,46 @@ INFORMAÇÕES ESPECÍFICAS DO CNPJ:
 - Atividade econômica principal
 - Data de abertura
 - Situação cadastral
-- Data da situação atual
-- Endereço da sede completo
+- Endereço da sede
 - Capital social
 - Porte da empresa
 - Responsáveis/sócios
-- Dados de contato (telefone, email, site)
 
-SCHEMA OBRIGATÓRIO DO JSON (copie a estrutura exata):
+SCHEMA DO JSON DE RESPOSTA:
 {{
-  "cnpj": null,
-  "razao_social": null,
-  "nome_fantasia": null,
-  "natureza_juridica": null,
-  "atividade_principal": null,
-  "data_abertura": null,
-  "situacao_cadastral": null,
-  "data_situacao": null,
+  "cnpj": "string - CNPJ formatado (xx.xxx.xxx/xxxx-xx)",
+  "razao_social": "string - Razão social da empresa",
+  "nome_fantasia": "string - Nome fantasia",
+  "natureza_juridica": "string - Natureza jurídica",
+  "atividade_principal": "string - Atividade econômica principal",
+  "data_abertura": "string - Data de abertura DD/MM/AAAA",
+  "situacao_cadastral": "string - Situação (Ativa, Baixada, etc)",
+  "data_situacao": "string - Data da situação atual",
   "endereco": {{
-    "logradouro": null,
-    "complemento": null,
-    "bairro": null,
-    "cidade": null,
-    "estado": null,
-    "cep": null
+    "logradouro": "string - Logradouro com número",
+    "complemento": "string - Complemento",
+    "bairro": "string - Bairro",
+    "cidade": "string - Município",
+    "estado": "string - Estado (sigla)",
+    "cep": "string - CEP"
   }},
-  "capital_social": null,
-  "porte": null,
-  "responsavel_federativo": null,
+  "capital_social": "string - Capital social",
+  "porte": "string - Porte da empresa",
+  "responsavel_federativo": "string - Ente federativo responsável",
   "socios": [
     {{
-      "nome": null,
-      "cpf_cnpj": null,
-      "qualificacao": null
+      "nome": "string - Nome do sócio",
+      "cpf_cnpj": "string - CPF ou CNPJ do sócio",
+      "qualificacao": "string - Qualificação do sócio"
     }}
   ],
-  "telefone": null,
-  "email": null,
-  "site": null
+  "telefone": "string - Telefone se presente",
+  "email": "string - Email se presente",
+  "site": "string - Website se presente"
 }}
 
 TEXTO DO DOCUMENTO CNPJ:
 {text}
 
-IMPORTANTE: Retorne APENAS o JSON com os valores extraídos do texto, mantendo a estrutura EXATA acima:
+Retorne apenas o JSON estruturado:
 """
