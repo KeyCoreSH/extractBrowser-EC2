@@ -47,8 +47,11 @@ class AIService:
             document_type: Tipo do documento (CNH, ANTT, CNPJ, etc.)
             
         Returns:
-            Dicionário com dados estruturados e metadados
+            Dicionário com dados estruturados e metadados no formato padronizado
         """
+        import time
+        start_time = time.time()
+        
         try:
             logger.info(f"Iniciando estruturação de dados para tipo: {document_type}")
             
@@ -57,62 +60,59 @@ class AIService:
             
             if not prompt:
                 logger.error(f"Tipo de documento não suportado: {document_type}")
+                processing_time = int((time.time() - start_time) * 1000)
                 return {
                     "success": False,
-                    "error": f"Tipo de documento '{document_type}' não é suportado",
-                    "data": {},
-                    "confidence": 0.0,
-                    "metadata": {
-                        "document_type": document_type,
-                        "ai_provider": "openai",
-                        "processing_time": 0
-                    }
+                    "data": {
+                        "success": False,
+                        "data": {},
+                        "confidence": 0.0
+                    },
+                    "processing_time_ms": processing_time
                 }
             
             # Estruturar dados com OpenAI (se disponível)
             if self.openai_available:
                 structured_data = self._structure_with_openai(prompt)
+                processing_time = int((time.time() - start_time) * 1000)
                 
                 if structured_data:
                     logger.info("Dados estruturados com sucesso")
+                    confidence = self._calculate_confidence(structured_data, document_type)
                     return {
                         "success": True,
-                        "data": structured_data,
-                        "confidence": 0.8,
-                        "metadata": {
-                            "document_type": document_type,
-                            "ai_provider": "openai",
-                            "model": "gpt-4o-mini",
-                            "extracted_fields": len(structured_data) if isinstance(structured_data, dict) else 0
-                        }
+                        "data": {
+                            "success": True,
+                            "data": structured_data,
+                            "confidence": confidence
+                        },
+                        "processing_time_ms": processing_time
                     }
             
             # Fallback para resposta estruturada básica sem IA
             logger.warning("OpenAI não disponível - retornando estrutura básica")
+            processing_time = int((time.time() - start_time) * 1000)
             return {
                 "success": False,
-                "error": "Serviço de IA não disponível",
-                "data": {},
-                "confidence": 0.0,
-                "metadata": {
-                    "document_type": document_type,
-                    "ai_provider": "none",
-                    "processing_time": 0
-                }
+                "data": {
+                    "success": False,
+                    "data": {},
+                    "confidence": 0.0
+                },
+                "processing_time_ms": processing_time
             }
             
         except Exception as e:
             logger.error(f"Erro na estruturação de dados: {str(e)}")
+            processing_time = int((time.time() - start_time) * 1000)
             return {
                 "success": False,
-                "error": f"Erro interno: {str(e)}",
-                "data": {},
-                "confidence": 0.0,
-                "metadata": {
-                    "document_type": document_type,
-                    "ai_provider": "error",
-                    "processing_time": 0
-                }
+                "data": {
+                    "success": False,
+                    "data": {},
+                    "confidence": 0.0
+                },
+                "processing_time_ms": processing_time
             }
     
     def _get_prompt_for_document_type(self, text: str, document_type: str) -> Optional[str]:
@@ -387,6 +387,61 @@ class AIService:
                 validation_result["is_valid"] = False
         
         return validation_result
+    
+    def _calculate_confidence(self, data: Dict[str, Any], document_type: str) -> float:
+        """
+        Calcula a confiança baseada na completude dos dados extraídos
+        
+        Args:
+            data: Dados estruturados extraídos
+            document_type: Tipo do documento
+            
+        Returns:
+            Score de confiança entre 0.0 e 1.0
+        """
+        try:
+            if not isinstance(data, dict) or not data:
+                return 0.0
+            
+            # Campos obrigatórios por tipo de documento
+            required_fields = {
+                "CNH": ["nome", "cpf", "categoria"],
+                "CNPJ": ["razao_social", "cnpj"],
+                "CPF": ["nome", "cpf"],
+                "CRV": ["placa", "chassi"],
+                "ANTT": ["numero_registro"],
+                "FATURA_ENERGIA": ["numero_cliente", "mes_referencia"]
+            }
+            
+            doc_type = document_type.upper()
+            required = required_fields.get(doc_type, [])
+            
+            if not required:
+                # Para tipos não mapeados, usar score baseado em quantidade de campos
+                filled_fields = sum(1 for v in data.values() if v and str(v).strip())
+                total_fields = len(data)
+                return min(0.8, (filled_fields / total_fields) if total_fields > 0 else 0.0)
+            
+            # Calcular baseado em campos obrigatórios preenchidos
+            filled_required = sum(1 for field in required if data.get(field))
+            base_confidence = filled_required / len(required) if required else 0.0
+            
+            # Bonus por campos adicionais preenchidos
+            all_filled = sum(1 for v in data.values() if v and str(v).strip())
+            total_fields = len(data)
+            
+            if total_fields > 0:
+                completeness_bonus = 0.2 * (all_filled / total_fields)
+                final_confidence = min(1.0, base_confidence + completeness_bonus)
+            else:
+                final_confidence = base_confidence
+            
+            # Arredondar para 3 casas decimais
+            return round(final_confidence, 3)
+            
+        except Exception as e:
+            logger.error(f"Erro ao calcular confiança: {str(e)}")
+            return 0.5  # Valor padrão em caso de erro
     
     def get_health_status(self) -> Dict[str, Any]:
         """

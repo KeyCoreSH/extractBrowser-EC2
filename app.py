@@ -83,6 +83,47 @@ def check_pdf_dependencies():
         logger.error(f"❌ Dependências não disponíveis: {e}")
         return False
 
+def create_standardized_response(success: bool, message: str, document_type: str = "", 
+                               structured_data: Dict[str, Any] = None, 
+                               processing_time_ms: int = 0, 
+                               additional_data: Dict[str, Any] = None) -> Dict[str, Any]:
+    """
+    Cria resposta padronizada conforme exemplo fornecido
+    
+    Args:
+        success: Se a operação foi bem-sucedida
+        message: Mensagem descritiva
+        document_type: Tipo do documento processado
+        structured_data: Dados estruturados extraídos
+        processing_time_ms: Tempo de processamento em milissegundos
+        additional_data: Dados adicionais para incluir
+        
+    Returns:
+        Resposta padronizada
+    """
+    if structured_data is None:
+        structured_data = {}
+    if additional_data is None:
+        additional_data = {}
+    
+    response = {
+        "success": success,
+        "message": message,
+        "data": {
+            "document_type": document_type.upper() if document_type else "UNKNOWN",
+            "data": structured_data,
+            "processing_time_ms": processing_time_ms
+        }
+    }
+    
+    # Adicionar dados extras se fornecidos
+    if additional_data:
+        for key, value in additional_data.items():
+            if value is not None:  # Só adicionar se tiver valor
+                response["data"][key] = value
+    
+    return response
+
 @app.route('/health', methods=['GET'])
 def health_check():
     """Endpoint de health check"""
@@ -118,10 +159,10 @@ def upload_document():
         
         # Verificar se há arquivo no request
         if not request.files and not request.json:
-            return jsonify({
-                'success': False,
-                'message': 'Nenhum arquivo enviado'
-            }), 400
+            return jsonify(create_standardized_response(
+                success=False,
+                message="Nenhum arquivo enviado"
+            )), 400
         
         # Processar arquivo do form-data ou JSON
         if request.files and 'file' in request.files:
@@ -135,16 +176,16 @@ def upload_document():
             filename = data.get('filename', 'document.pdf')
             document_type = data.get('document_type', 'generic')
         else:
-            return jsonify({
-                'success': False,
-                'message': 'Formato de dados inválido'
-            }), 400
+            return jsonify(create_standardized_response(
+                success=False,
+                message="Formato de dados inválido"
+            )), 400
         
         if not file_content:
-            return jsonify({
-                'success': False,
-                'message': 'Arquivo vazio'
-            }), 400
+            return jsonify(create_standardized_response(
+                success=False,
+                message="Arquivo vazio"
+            )), 400
         
         logger.info(f"📄 Processando arquivo: {filename} ({len(file_content)} bytes)")
         
@@ -153,19 +194,19 @@ def upload_document():
         is_image = filename.lower().endswith(('.png', '.jpg', '.jpeg'))
         
         if not (is_pdf or is_image):
-            return jsonify({
-                'success': False,
-                'message': 'Tipo de arquivo não suportado. Use PDF, PNG, JPG ou JPEG.'
-            }), 400
+            return jsonify(create_standardized_response(
+                success=False,
+                message="Tipo de arquivo não suportado. Use PDF, PNG, JPG ou JPEG."
+            )), 400
         
         # Validar PDF se necessário
         if is_pdf:
             is_valid, validation_msg = validate_pdf(file_content)
             if not is_valid:
-                return jsonify({
-                    'success': False,
-                    'message': f'PDF inválido: {validation_msg}'
-                }), 400
+                return jsonify(create_standardized_response(
+                    success=False,
+                    message=f"PDF inválido: {validation_msg}"
+                )), 400
         
         # Upload do arquivo original
         original_key = s3_manager.upload_file(
@@ -176,10 +217,10 @@ def upload_document():
         )
         
         if not original_key:
-            return jsonify({
-                'success': False,
-                'message': 'Erro ao salvar arquivo no S3'
-            }), 500
+            return jsonify(create_standardized_response(
+                success=False,
+                message="Erro ao salvar arquivo no S3"
+            )), 500
         
         result = {
             'success': True,
@@ -232,25 +273,23 @@ def upload_document():
                     logger.info("🤖 Estruturando dados com IA...")
                     structured_result = ai_service.structure_data(text_content, document_type)
                     
+                    # Adicionar dados estruturados ao resultado
+                    result['structured_data'] = structured_result['data']
+                    result['ai_processing_time_ms'] = structured_result['processing_time_ms']
+                    
                     if structured_result['success']:
-                        result['structured_data'] = structured_result['data']
-                        result['ai_confidence'] = structured_result['confidence']
-                        result['ai_metadata'] = structured_result['metadata']
-                        
-                        # Validar dados estruturados
-                        validation = ai_service.validate_structured_data(
-                            structured_result['data'], 
-                            document_type
-                        )
-                        result['validation'] = validation
-                        
-                        logger.info(f"✅ Dados estruturados com confiança: {structured_result['confidence']}")
+                        result['ai_confidence'] = structured_result['data']['confidence']
+                        logger.info(f"✅ Dados estruturados com confiança: {structured_result['data']['confidence']}")
                     else:
-                        result['structured_data'] = {}
-                        result['ai_error'] = structured_result['error']
-                        logger.warning(f"❌ Falha na estruturação: {structured_result['error']}")
+                        result['ai_error'] = "Falha na estruturação de dados"
+                        logger.warning(f"❌ Falha na estruturação")
                 else:
-                    result['structured_data'] = {}
+                    result['structured_data'] = {
+                        "success": False,
+                        "data": {},
+                        "confidence": 0.0
+                    }
+                    result['ai_processing_time_ms'] = 0
                     if not ai_service:
                         result['ai_error'] = "Serviço de IA não disponível"
         
@@ -273,46 +312,71 @@ def upload_document():
                     logger.info("🤖 Estruturando dados com IA...")
                     structured_result = ai_service.structure_data(text_content, document_type)
                     
+                    # Adicionar dados estruturados ao resultado
+                    result['structured_data'] = structured_result['data']
+                    result['ai_processing_time_ms'] = structured_result['processing_time_ms']
+                    
                     if structured_result['success']:
-                        result['structured_data'] = structured_result['data']
-                        result['ai_confidence'] = structured_result['confidence']
-                        result['ai_metadata'] = structured_result['metadata']
-                        
-                        # Validar dados estruturados
-                        validation = ai_service.validate_structured_data(
-                            structured_result['data'], 
-                            document_type
-                        )
-                        result['validation'] = validation
-                        
-                        logger.info(f"✅ Dados estruturados com confiança: {structured_result['confidence']}")
+                        result['ai_confidence'] = structured_result['data']['confidence']
+                        logger.info(f"✅ Dados estruturados com confiança: {structured_result['data']['confidence']}")
                     else:
-                        result['structured_data'] = {}
-                        result['ai_error'] = structured_result['error']
-                        logger.warning(f"❌ Falha na estruturação: {structured_result['error']}")
+                        result['ai_error'] = "Falha na estruturação de dados"
+                        logger.warning(f"❌ Falha na estruturação")
                 else:
-                    result['structured_data'] = {}
+                    result['structured_data'] = {
+                        "success": False,
+                        "data": {},
+                        "confidence": 0.0
+                    }
+                    result['ai_processing_time_ms'] = 0
                     if not ai_service:
                         result['ai_error'] = "Serviço de IA não disponível"
             else:
                 logger.warning("⚠️ Não foi possível extrair texto da imagem")
                 result['extracted_text'] = ""
-                result['structured_data'] = {}
+                result['structured_data'] = {
+                    "success": False,
+                    "data": {},
+                    "confidence": 0.0
+                }
+                result['ai_processing_time_ms'] = 0
                 result['ai_error'] = "Falha na extração de texto da imagem"
         
         processing_time = int((time.time() - start_time) * 1000)
         result['processing_time_ms'] = processing_time
         result['timestamp'] = datetime.now().isoformat()
         
+        # Padronizar resposta conforme formato especificado
+        standardized_response = create_standardized_response(
+            success=True,
+            message="Documento processado com sucesso",
+            document_type=document_type,
+            structured_data=result.get('structured_data', {}),
+            processing_time_ms=processing_time,
+            additional_data={
+                'filename': result.get('filename'),
+                'size': result.get('size'),
+                'original_key': result.get('original_key'),
+                'original_url': result.get('original_url'),
+                'preview_key': result.get('preview_key'),
+                'preview_url': result.get('preview_url'),
+                'extracted_text': result.get('extracted_text'),
+                'is_pdf': result.get('is_pdf'),
+                'is_image': result.get('is_image'),
+                'pdf_info': result.get('pdf_info'),
+                'timestamp': result.get('timestamp')
+            }
+        )
+        
         logger.info(f"✅ Documento processado em {processing_time}ms")
-        return jsonify(result)
+        return jsonify(standardized_response)
         
     except Exception as e:
         logger.error(f"❌ Erro no upload: {e}")
-        return jsonify({
-            'success': False,
-            'message': f'Erro interno: {str(e)}'
-        }), 500
+        return jsonify(create_standardized_response(
+            success=False,
+            message=f"Erro interno: {str(e)}"
+        )), 500
 
 @app.route('/view/<path:s3_key>')
 def view_document(s3_key):
@@ -324,10 +388,10 @@ def view_document(s3_key):
         file_content = s3_manager.download_file(s3_key)
         
         if not file_content:
-            return jsonify({
-                'success': False,
-                'message': 'Arquivo não encontrado'
-            }), 404
+            return jsonify(create_standardized_response(
+                success=False,
+                message="Arquivo não encontrado"
+            )), 404
         
         # Determinar content type
         if s3_key.lower().endswith('.pdf'):
@@ -353,27 +417,30 @@ def view_document(s3_key):
         
     except Exception as e:
         logger.error(f"❌ Erro na visualização: {e}")
-        return jsonify({
-            'success': False,
-            'message': f'Erro interno: {str(e)}'
-        }), 500
+        return jsonify(create_standardized_response(
+            success=False,
+            message=f"Erro interno: {str(e)}"
+        )), 500
 
 @app.route('/files')
 def list_files():
     """Lista arquivos no bucket"""
     try:
         files = s3_manager.list_files(max_keys=50)
-        return jsonify({
-            'success': True,
-            'files': files,
-            'count': len(files)
-        })
+        return jsonify(create_standardized_response(
+            success=True,
+            message="Arquivos listados com sucesso",
+            additional_data={
+                'files': files,
+                'count': len(files)
+            }
+        ))
     except Exception as e:
         logger.error(f"❌ Erro ao listar arquivos: {e}")
-        return jsonify({
-            'success': False,
-            'message': f'Erro interno: {str(e)}'
-        }), 500
+        return jsonify(create_standardized_response(
+            success=False,
+            message=f"Erro interno: {str(e)}"
+        )), 500
 
 @app.route('/')
 def index():
@@ -942,13 +1009,20 @@ def index():
         function showResults(result) {
             document.getElementById('resultsSection').style.display = 'block';
             
+            // Extrair dados da nova estrutura padronizada
+            const data = result.data || {};
+            const structuredData = data.data || {};
+            
             // Update confidence
-            const confidence = Math.round((result.ai_confidence || 0) * 100);
+            let confidence = 0;
+            if (structuredData.success && structuredData.confidence) {
+                confidence = Math.round(structuredData.confidence * 100);
+            }
             document.getElementById('confidenceText').textContent = `${confidence}%`;
             
             // Show structured data
-            if (result.structured_data && Object.keys(result.structured_data).length > 0) {
-                document.getElementById('structuredData').innerHTML = formatStructuredData(result.structured_data);
+            if (structuredData.success && structuredData.data && Object.keys(structuredData.data).length > 0) {
+                document.getElementById('structuredData').innerHTML = formatStructuredData(structuredData.data);
             } else {
                 document.getElementById('structuredData').innerHTML = '<p>Dados estruturados não disponíveis</p>';
             }
@@ -957,9 +1031,9 @@ def index():
             document.getElementById('jsonData').textContent = JSON.stringify(result, null, 2);
             
             // Show preview
-            if (result.preview_key) {
+            if (data.preview_key) {
                 document.getElementById('previewData').innerHTML = `
-                    <img src="/view/${result.preview_key}" style="max-width: 100%; border-radius: 8px;" alt="Preview">
+                    <img src="/view/${data.preview_key}" style="max-width: 100%; border-radius: 8px;" alt="Preview">
                 `;
             } else {
                 document.getElementById('previewData').innerHTML = '<p>Preview não disponível</p>';

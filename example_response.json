@@ -1,0 +1,43 @@
+{
+  "success": true,
+  "message": "Documento processado com sucesso",
+  "data": {
+    "document_type": "CNH",
+    "data": {
+      "success": true,
+      "data": {
+        "nome": "JORGE LUIZ CUNHA DE FREITAS",
+        "cpf": "710.956.694-35",
+        "rg": "10567090",
+        "data_nascimento": "20/02/2004",
+        "data_emissao": "20/04/2023",
+        "data_vencimento": "01/11/2032",
+        "categoria": "AB",
+        "numero_registro": "08157171979",
+        "local_emissao": "RECIFE, PE",
+        "endereco": {
+          "cidade": "RECIFE",
+          "estado": "PE"
+        },
+        "filiacao": {
+          "pai": "PAULO LUIZ DA CUNHA",
+          "mae": "ANA MARCELA MARIA DE FREITAS"
+        },
+        "orgao_emissor": "DEPARTAMENTO ESTADUAL DE TRÂNSITO",
+        "nacionalidade": "BRASILEIRO"
+      },
+      "confidence": 0.846
+    },
+    "processing_time_ms": 8237,
+    "filename": "cnh_exemplo.pdf",
+    "size": 2048576,
+    "original_key": "original_files/cnh_exemplo_20240101123456.pdf",
+    "original_url": "https://s3.amazonaws.com/bucket/original_files/cnh_exemplo_20240101123456.pdf",
+    "preview_key": "preview_images/preview_cnh_exemplo_20240101123456.png",
+    "preview_url": "https://s3.amazonaws.com/bucket/preview_images/preview_cnh_exemplo_20240101123456.png",
+    "extracted_text": "REPÚBLICA FEDERATIVA DO BRASIL\nCARTEIRA NACIONAL DE HABILITAÇÃO...",
+    "is_pdf": true,
+    "is_image": false,
+    "timestamp": "2024-01-01T12:34:56.789Z"
+  }
+}
