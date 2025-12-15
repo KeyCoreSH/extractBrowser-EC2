@@ -257,6 +257,9 @@ O projeto inclui um workflow do GitHub Actions (`.github/workflows/deploy.yml`) 
    - `EC2_HOST`: IP público ou DNS do seu servidor
    - `EC2_USER`: Usuário SSH (geralmente `ubuntu` ou `ec2-user`)
    - `EC2_SSH_KEY`: Sua chave privada SSH (conteúdo do arquivo .pem)
+   - `AWS_ACCESS_KEY_ID`: Sua chave de acesso AWS
+   - `AWS_SECRET_ACCESS_KEY`: Seu segredo de acesso AWS
+   - `OPENAI_API_KEY`: Sua chave API da OpenAI (opcional, se usar IA)
 
 Agora, todo commit na `main` atualizará automaticamente o servidor! 🚀
 
