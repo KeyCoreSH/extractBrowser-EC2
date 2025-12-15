@@ -184,6 +184,10 @@ Lista arquivos no bucket
 
 ### 📦 **Deploy Automático**
 
+> [!IMPORTANT]  
+> **Requisito de Versão Python**: Devido à dependência do `PyMuPDF` (biblioteca C++ compilada), recomenda-se usar **Python 3.9 a 3.11**.  
+> O Python 3.13 ainda não possui rodas (wheels) pré-compiladas compatíveis, o que pode causar erros de compilação durante o deploy.
+
 ```bash
 # 1. Configurar AWS CLI
 aws configure
