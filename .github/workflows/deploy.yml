@@ -24,19 +24,12 @@ jobs:
             # Check if using Docker (Recommended)
             if [ -f "docker-compose.yml" ]; then
               echo "🐳 Deploying with Docker..."
-              docker-compose down
-              docker-compose up -d --build
-              docker system prune -f
-            
-            # Fallback to PM2 if not using Docker (Legacy)
-            elif command -v pm2 &> /dev/null; then
-              echo "🔄 Deploying with PM2..."
-              source venv/bin/activate
-              pip install -r requirements.txt
-              pm2 restart extract || pm2 start app.py --name extract --interpreter python3
+              sudo docker-compose down
+              sudo docker-compose up -d --build
+              sudo docker system prune -f
             
             else
-              echo "❌ No deployment method found (Docker or PM2)"
+              echo "❌ docker-compose.yml not found!"
               exit 1
             fi
             

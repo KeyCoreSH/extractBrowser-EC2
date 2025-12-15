@@ -229,15 +229,6 @@ sudo systemctl restart nginx
 
 A maneira mais fácil e segura de rodar a aplicação, evitando conflitos de versão do Python.
 
-**⚠️ Importante:** Se você já roda o sistema com PM2, pare o processo antigo para liberar a porta 2345:
-
-```bash
-pm2 stop extract
-pm2 delete extract
-```
-
-Então prossiga com o Docker:
-
 ```bash
 # 1. Instalar Docker e Docker Compose (se não tiver)
 sudo apt-get update
