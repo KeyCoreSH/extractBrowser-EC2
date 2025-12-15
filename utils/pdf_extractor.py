@@ -103,77 +103,83 @@ def get_pdf_info(pdf_bytes: bytes) -> dict:
         logger.error(f"❌ Erro ao obter informações do PDF: {e}")
         return {'error': str(e)}
 
-def extract_text_from_pdf(pdf_bytes: bytes, max_pages: int = 1) -> str:
+def extract_text_from_pdf(pdf_bytes: bytes, max_pages: int = None) -> str:
     """
-    Extrai texto do PDF com lógica inteligente de OCR
-    
-    Uses OCR fallback if:
-    - Direct text is too short (< 50 characters)
-    - Contains "assinado" (indicates scanned/signed document)
+    Extrai texto de TODAS as páginas do PDF com lógica inteligente de OCR.
+    Se o PDF for escaneado (sem texto selecionável), usa fallback para AWS Textract.
     
     Args:
         pdf_bytes: Conteúdo do PDF em bytes
-        max_pages: Máximo de páginas para extrair texto
+        max_pages: Opcional, máximo de páginas (None = todas)
     
     Returns:
-        Texto extraído
+        Texto extraído concatenado de todas as páginas
     """
     try:
         pdf_doc = fitz.open(stream=pdf_bytes, filetype="pdf")
         text_parts = []
         
-        pages_to_extract = min(len(pdf_doc), max_pages)
+        # Determinar quantas páginas processar
+        total_pages = len(pdf_doc)
+        pages_to_extract = min(total_pages, max_pages) if max_pages else total_pages
+        
+        logger.info(f"📄 Iniciando extração de texto de {pages_to_extract} página(s)")
         
         for page_num in range(pages_to_extract):
             page = pdf_doc[page_num]
             
-            # 1. Extração de texto direto
+            # 1. Tentar extração de texto direto (rápido)
             direct_text = page.get_text("text")
-            logger.info(f"📄 Página {page_num + 1}: texto direto com {len(direct_text)} caracteres")
             
-            # 2. Lógica de decisão para OCR
-            is_signed = "assinado" in direct_text.lower()
-            is_signed = "assinado" in direct_text.lower()
-            is_short = len(direct_text.strip()) < 100  # Aumentado para 100 caracteres para pegar mais casos de scan ruim
-            needs_ocr = is_short or is_signed
+            # 2. Avaliar necessidade de OCR
+            # Se o texto for muito curto (< 50 chars) em uma página cheia, provavelmente é imagem
+            # Ou se contiver palavras-chave indicando digitalização
+            clean_text = direct_text.strip()
+            is_empty_or_short = len(clean_text) < 50
+            
+            # Heurística: Se a página parece vazia de texto mas tem conteúdo visual (imagens), precisa de OCR
+            # Se já tem bastante texto, confiamos no direto
+            needs_ocr = is_empty_or_short
             
             if needs_ocr:
-                reason = "Palavra 'assinado' detectada" if is_signed else "Texto insuficiente"
-                logger.info(f"🔍 {reason} na página {page_num + 1}. Aplicando OCR...")
+                logger.info(f"🔍 Página {page_num + 1}: Texto direto insuficiente ({len(clean_text)} chars). Aplicando OCR...")
                 
                 try:
-                    # Renderizar página como imagem para OCR
-                    pix = page.get_pixmap(dpi=400)  # Alta resolução para melhor OCR
+                    # Renderizar página como imagem de alta resolução (300 DPI é bom para OCR)
+                    pix = page.get_pixmap(dpi=300)
                     img_bytes = pix.tobytes("png")
                     
-                    # Usar AWS Textract para OCR (se disponível)
+                    # Usar AWS Textract
                     ocr_text = _extract_text_with_textract(img_bytes)
                     
-                    if ocr_text and len(ocr_text) > len(direct_text):
+                    if ocr_text and len(ocr_text) > len(clean_text):
                         page_text = ocr_text
-                        logger.info(f"✅ OCR produziu mais texto ({len(ocr_text)} chars vs {len(direct_text)} chars)")
+                        logger.info(f"✅ OCR bem sucedido na página {page_num + 1} ({len(ocr_text)} chars)")
                     else:
+                        # Se OCR falhar ou retornar menos, mantém o que tinha (mesmo que pouco)
                         page_text = direct_text
-                        logger.info(f"⚠️ Usando texto direto (OCR: {len(ocr_text or '')} chars)")
+                        logger.warning(f"⚠️ OCR não retornou mais texto que o método direto na página {page_num + 1}")
                         
                 except Exception as ocr_error:
                     logger.error(f"❌ Erro no OCR da página {page_num + 1}: {ocr_error}")
                     page_text = direct_text
             else:
+                logger.info(f"📝 Usando texto direto da página {page_num + 1} ({len(clean_text)} chars)")
                 page_text = direct_text
-                logger.info(f"📝 Usando texto direto da página {page_num + 1}")
             
             if page_text.strip():
                 text_parts.append(f"=== PÁGINA {page_num + 1} ===\n{page_text}\n")
+            else:
+                text_parts.append(f"=== PÁGINA {page_num + 1} ===\n[Página em branco ou ilegível]\n")
         
         pdf_doc.close()
         
         full_text = "\n".join(text_parts)
-        logger.info(f"📝 Texto final extraído de {pages_to_extract} página(s) - {len(full_text)} caracteres")
+        logger.info(f"📝 Texto final extraído: {len(full_text)} caracteres de {pages_to_extract} página(s)")
         return full_text
         
     except Exception as e:
-        logger.error(f"❌ Erro na extração de texto: {e}")
+        logger.error(f"❌ Erro crítico na extração de texto do PDF: {e}")
         return ""
 
 
@@ -189,9 +195,11 @@ def _extract_text_with_textract(image_bytes: bytes) -> str:
     """
     try:
         import boto3
+        import os
         from botocore.exceptions import ClientError
         
-        textract = boto3.client('textract')
+        region = os.environ.get('AWS_REGION', 'us-east-2')
+        textract = boto3.client('textract', region_name=region)
         
         # Verificar tamanho (Textract tem limite de 5MB)
         if len(image_bytes) > 5 * 1024 * 1024:

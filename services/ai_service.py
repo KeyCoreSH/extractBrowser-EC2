@@ -10,6 +10,9 @@ from typing import Dict, Any, Optional
 from prompts.base_prompt import get_base_prompt
 from prompts.cnh_prompt import get_cnh_prompt
 from prompts.cnpj_prompt import get_cnpj_prompt
+from prompts.antt_prompt import get_antt_prompt
+from prompts.veiculo_prompt import get_veiculo_prompt
+from prompts.residencia_prompt import get_residencia_prompt
 
 logger = logging.getLogger(__name__)
 
@@ -74,10 +77,13 @@ class AIService:
             
             # Estruturar dados com OpenAI (se disponível)
             if self.openai_available:
-                structured_data = self._structure_with_openai(prompt)
+                ai_result = self._structure_with_openai(prompt)
                 processing_time = int((time.time() - start_time) * 1000)
                 
-                if structured_data:
+                if ai_result:
+                    structured_data = ai_result.get('data', {})
+                    usage = ai_result.get('usage', {'input_tokens': 0, 'output_tokens': 0, 'total_tokens': 0})
+                    
                     logger.info("Dados estruturados com sucesso")
                     confidence = self._calculate_confidence(structured_data, document_type)
                     return {
@@ -85,7 +91,8 @@ class AIService:
                         "data": {
                             "success": True,
                             "data": structured_data,
-                            "confidence": confidence
+                            "confidence": confidence,
+                            "usage": usage
                         },
                         "processing_time_ms": processing_time
                     }
@@ -130,16 +137,22 @@ class AIService:
         try:
             document_type = document_type.upper()
             
+            # Map tipos
             if document_type == "CNH":
                 return get_cnh_prompt(text)
             elif document_type == "CNPJ":
                 return get_cnpj_prompt(text)
-            elif document_type in ["ANTT", "CPF", "CRV", "FATURA_ENERGIA"]:
+            elif document_type == "ANTT":
+                return get_antt_prompt(text)
+            elif document_type in ["CRV", "CRLV", "VEICULO"]:
+                return get_veiculo_prompt(text)
+            elif document_type in ["RESIDENCIA", "CONTA", "FATURA", "ENERGIA", "AGUA"]:
+                return get_residencia_prompt(text)
+            elif document_type in ["CPF", "GENERIC"]:
                 return get_base_prompt(text, document_type)
             else:
                 logger.warning(f"Tipo de documento não reconhecido: {document_type}")
-                # Usar prompt genérico
-                return get_base_prompt(text, "UNKNOWN")
+                return get_base_prompt(text, "GENERIC")
                 
         except Exception as e:
             logger.error(f"Erro ao obter prompt: {str(e)}")
@@ -211,8 +224,21 @@ class AIService:
             cleaned_content = self._clean_json_response(content)
             structured_data = json.loads(cleaned_content)
             
+            # Extrair uso de tokens
+            usage = response_data.get('usage', {})
+            input_tokens = usage.get('prompt_tokens', 0)
+            output_tokens = usage.get('completion_tokens', 0)
+            total_tokens = usage.get('total_tokens', 0)
+            
             logger.info("Dados estruturados com sucesso usando API OpenAI")
-            return structured_data
+            return {
+                "data": structured_data,
+                "usage": {
+                    "input_tokens": input_tokens,
+                    "output_tokens": output_tokens,
+                    "total_tokens": total_tokens
+                }
+            }
             
         except requests.exceptions.Timeout:
             logger.error("Timeout na requisição para API OpenAI")

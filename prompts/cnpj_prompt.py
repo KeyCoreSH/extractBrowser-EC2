@@ -31,32 +31,6 @@ REGRAS CRÍTICAS:
 
 INFORMAÇÕES ESPECÍFICAS DO CNPJ:
 - CNPJ (formato xx.xxx.xxx/xxxx-xx)
-- Razão Social
-- Nome fantasia
-- Natureza jurídica
-- Atividade econômica principal
-- Data de abertura
-- Situação cadastral
-- Endereço da sede
-- Capital social
-- Porte da empresa
-- Responsáveis/sócios
-
-SCHEMA DO JSON DE RESPOSTA:
-{{
-  "cnpj": "string - CNPJ formatado (xx.xxx.xxx/xxxx-xx)",
-  "razao_social": "string - Razão social da empresa",
-  "nome_fantasia": "string - Nome fantasia",
-  "natureza_juridica": "string - Natureza jurídica",
-  "atividade_principal": "string - Atividade econômica principal",
-  "data_abertura": "string - Data de abertura DD/MM/AAAA",
-  "situacao_cadastral": "string - Situação (Ativa, Baixada, etc)",
-  "data_situacao": "string - Data da situação atual",
-  "endereco": {{
-    "logradouro": "string - Logradouro com número",
-    "complemento": "string - Complemento",
-    "bairro": "string - Bairro",
-    "cidade": "string - Município",
     "estado": "string - Estado (sigla)",
     "cep": "string - CEP"
   }},

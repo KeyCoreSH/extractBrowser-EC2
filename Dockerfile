@@ -8,23 +8,25 @@ WORKDIR /app
 # build-essential: for compiling C extensions
 # curl: for healthchecks
 RUN apt-get update && apt-get install -y \
-    build-essential \
-    gcc \
-    curl \
-    && rm -rf /var/lib/apt/lists/*
+  build-essential \
+  gcc \
+  curl \
+  && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements first to leverage Docker cache
 COPY requirements.txt .
 
 # Install Python dependencies
 RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir -r requirements.txt
+  pip install --no-cache-dir -r requirements.txt
 
 # Copy application code
 COPY . .
 
-# Create non-root user for security
-RUN useradd -m appuser && chown -R appuser:appuser /app
+# Create non-root user for security and setup data directory
+RUN useradd -m appuser && \
+  mkdir -p /app/data && \
+  chown -R appuser:appuser /app
 USER appuser
 
 # Expose the port
