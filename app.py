@@ -45,7 +45,15 @@ AWS_REGION = os.environ.get('AWS_REGION', 'us-east-2')
 app = Flask(__name__)
 CORS(app, origins=['*'])  # Permitir todas as origens por enquanto
 # Configurar headers de segurança com Talisman
-Talisman(app, force_https=False)  # force_https=False para desenvolvimento/local
+# CSP permissiva para permitir estilos inline e CDNs externos (Font Awesome)
+csp = {
+    'default-src': ["'self'", "'unsafe-inline'", 'data:', 'blob:'],
+    'script-src': ["'self'", "'unsafe-inline'", "'unsafe-eval'", 'https://cdnjs.cloudflare.com'],
+    'style-src': ["'self'", "'unsafe-inline'", 'https://cdnjs.cloudflare.com', 'https://fonts.googleapis.com'],
+    'font-src': ["'self'", 'data:', 'https://cdnjs.cloudflare.com', 'https://fonts.gstatic.com'],
+    'img-src': ["'self'", 'data:', 'blob:', 'https://*.amazonaws.com']
+}
+Talisman(app, force_https=False, content_security_policy=csp)
 
 # Gerenciador S3 e Serviço de IA
 s3_manager = None
