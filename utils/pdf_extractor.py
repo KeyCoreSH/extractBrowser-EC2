@@ -133,7 +133,8 @@ def extract_text_from_pdf(pdf_bytes: bytes, max_pages: int = 1) -> str:
             
             # 2. Lógica de decisão para OCR
             is_signed = "assinado" in direct_text.lower()
-            is_short = len(direct_text.strip()) < 50
+            is_signed = "assinado" in direct_text.lower()
+            is_short = len(direct_text.strip()) < 100  # Aumentado para 100 caracteres para pegar mais casos de scan ruim
             needs_ocr = is_short or is_signed
             
             if needs_ocr:

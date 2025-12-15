@@ -16,6 +16,7 @@ from pathlib import Path
 
 from flask import Flask, request, jsonify, send_file, render_template_string
 from flask_cors import CORS
+from flask_talisman import Talisman
 import boto3
 from botocore.exceptions import ClientError
 from dotenv import load_dotenv
@@ -43,6 +44,8 @@ AWS_REGION = os.environ.get('AWS_REGION', 'us-east-2')
 # Inicializar Flask
 app = Flask(__name__)
 CORS(app, origins=['*'])  # Permitir todas as origens por enquanto
+# Configurar headers de segurança com Talisman
+Talisman(app, force_https=False)  # force_https=False para desenvolvimento/local
 
 # Gerenciador S3 e Serviço de IA
 s3_manager = None

@@ -26,7 +26,8 @@ REGRAS CRÍTICAS:
 4. O JSON deve ser 100% válido, sem vírgulas finais
 5. Use aspas duplas para todas as chaves e valores string
 6. Se não encontrar uma informação, use null para o campo
-7. Mantenha a estrutura exata do schema fornecido
+7. Mantenha a estrutura exata do schema fornecido.
+8. TODOS os campos do schema DEVEM estar presentes no JSON, use null se não encontrar o valor.
 
 INFORMAÇÕES ESPECÍFICAS DO CNPJ:
 - CNPJ (formato xx.xxx.xxx/xxxx-xx)

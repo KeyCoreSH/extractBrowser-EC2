@@ -27,6 +27,7 @@ class AIService:
     def __init__(self):
         """Inicializa o serviço de IA"""
         self.openai_api_key = os.getenv('OPENAI_API_KEY')
+        self.openai_model = os.getenv('OPENAI_MODEL', 'gpt-4o-mini')
         self.openai_url = "https://api.openai.com/v1/chat/completions"
         
         # Log da configuração (sem expor a chave completa)
@@ -163,7 +164,7 @@ class AIService:
             }
             
             payload = {
-                "model": "gpt-4o-mini",
+                "model": self.openai_model,
                 "messages": [
                     {
                         "role": "system",
@@ -176,7 +177,8 @@ class AIService:
                     }
                 ],
                 "max_tokens": AI_MAX_TOKENS,
-                "temperature": AI_TEMPERATURE
+                "temperature": AI_TEMPERATURE,
+                "response_format": {"type": "json_object"}
             }
             
             # Fazer requisição para API OpenAI
@@ -246,48 +248,14 @@ class AIService:
             # Log para debug
             logger.debug(f"Conteúdo bruto recebido (primeiros 200 chars): {content[:200]}")
             
-            # Procurar por blocos JSON com markdown
+            # Com JSON mode ativado, a resposta deve ser um JSON válido diretamente
+            # Mas ainda podemos ter markdown wrappers em alguns casos (embora raro com json_object)
             if "```json" in content:
                 start = content.find("```json") + 7
                 end = content.find("```", start)
                 if end != -1:
                     content = content[start:end].strip()
-                    logger.debug("JSON extraído de bloco ```json")
-            elif "```" in content:
-                start = content.find("```") + 3
-                end = content.find("```", start)
-                if end != -1:
-                    content = content[start:end].strip()
-                    logger.debug("JSON extraído de bloco ```")
             
-            # Procurar pelo primeiro { e último } para isolar o JSON
-            start = content.find("{")
-            end = content.rfind("}") + 1
-            
-            if start != -1 and end > start:
-                json_content = content[start:end]
-                logger.debug(f"JSON isolado (primeiros 100 chars): {json_content[:100]}")
-                
-                # Validar se é um JSON válido
-                try:
-                    json.loads(json_content)
-                    logger.debug("JSON validado com sucesso")
-                    return json_content
-                except json.JSONDecodeError as e:
-                    logger.warning(f"JSON inválido após limpeza: {str(e)}")
-                    # Tentar limpar caracteres problemáticos
-                    json_content = json_content.replace('\n', ' ').replace('\r', ' ')
-                    json_content = ' '.join(json_content.split())  # Normalizar espaços
-                    
-                    try:
-                        json.loads(json_content)
-                        logger.debug("JSON validado após limpeza adicional")
-                        return json_content
-                    except json.JSONDecodeError:
-                        logger.error(f"JSON continua inválido: {json_content[:200]}")
-                        return json_content
-            
-            logger.warning("Não foi possível isolar JSON válido")
             return content
             
         except Exception as e:
@@ -454,6 +422,6 @@ class AIService:
             "ai_service": "ready",
             "openai_available": self.openai_available,
             "models": {
-                "openai": "gpt-4o-mini"
+                "openai": self.openai_model
             }
         }
