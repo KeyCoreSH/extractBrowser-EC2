@@ -220,17 +220,25 @@ def upload_document():
                 )), 400
         
         # Upload do arquivo original
-        original_key = s3_manager.upload_file(
-            file_content, 
-            filename, 
-            folder="original_files",
-            content_type="application/pdf" if is_pdf else "image/jpeg"
-        )
-        
-        if not original_key:
+        try:
+            original_key = s3_manager.upload_file(
+                file_content, 
+                filename, 
+                folder="original_files",
+                content_type="application/pdf" if is_pdf else "image/jpeg"
+            )
+        except Exception as e:
+            logger.error(f"❌ Erro crítico no upload S3: {str(e)}")
             return jsonify(create_standardized_response(
                 success=False,
-                message="Erro ao salvar arquivo no S3"
+                message=f"Erro interno no upload S3: {str(e)}"
+            )), 500
+        
+        if not original_key:
+            logger.error("❌ s3_manager.upload_file retornou None")
+            return jsonify(create_standardized_response(
+                success=False,
+                message="Falha ao salvar arquivo no S3 (retornou vazio)"
             )), 500
         
         result = {
