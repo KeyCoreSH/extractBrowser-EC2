@@ -225,6 +225,50 @@ sudo ln -s /etc/nginx/sites-available/extractbrowser /etc/nginx/sites-enabled/
 sudo systemctl restart nginx
 ```
 
+### 🐳 **Deploy com Docker (Recomendado)**
+
+A maneira mais fácil e segura de rodar a aplicação, evitando conflitos de versão do Python.
+
+**⚠️ Importante:** Se você já roda o sistema com PM2, pare o processo antigo para liberar a porta 2345:
+
+```bash
+pm2 stop extract
+pm2 delete extract
+```
+
+Então prossiga com o Docker:
+
+```bash
+# 1. Instalar Docker e Docker Compose (se não tiver)
+sudo apt-get update
+sudo apt-get install -y docker.io docker-compose
+sudo usermod -aG docker $USER
+# (Faça logout e login novamente para aplicar permissões de grupo)
+
+# 2. Configurar .env
+cp config.env.example .env
+# Edite o .env com suas credenciais
+
+# 3. Rodar aplicação
+docker-compose up -d --build
+
+# Ver logs
+docker-compose logs -f
+```
+
+### 🔄 **CI/CD: Deploy Automático**
+
+O projeto inclui um workflow do GitHub Actions (`.github/workflows/deploy.yml`) para deploy automático ao fazer push na branch `main`.
+
+**Para ativar, adicione as seguintes Secrets no GitHub:**
+1. Vá em `Settings` > `Secrets and variables` > `Actions` > `New repository secret`
+2. Adicione:
+   - `EC2_HOST`: IP público ou DNS do seu servidor
+   - `EC2_USER`: Usuário SSH (geralmente `ubuntu` ou `ec2-user`)
+   - `EC2_SSH_KEY`: Sua chave privada SSH (conteúdo do arquivo .pem)
+
+Agora, todo commit na `main` atualizará automaticamente o servidor! 🚀
+
 ## 🏗️ **Arquitetura**
 
 ```
