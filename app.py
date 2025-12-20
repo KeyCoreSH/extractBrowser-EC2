@@ -1000,7 +1000,7 @@ def list_files():
 @login_required
 def index():
     """Página inicial com interface igual ao projeto anterior"""
-    return send_file('frontend.html')
+    return send_file(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'frontend.html'))
 
 # Inicializar serviços na carga do módulo (para Gunicorn)
 logger.info("🚀 Inicializando serviços do ExtractBrowser...")
