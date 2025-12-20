@@ -490,10 +490,11 @@ def upload_document():
             )), 500
         
         if not original_key:
-            logger.error("❌ s3_manager.upload_file retornou None")
+            error_reason = getattr(s3_manager, 'last_error', 'Unknown Error')
+            logger.error(f"❌ s3_manager.upload_file falhou: {error_reason}")
             return jsonify(create_standardized_response(
                 success=False,
-                message="Falha ao salvar arquivo no S3 (retornou vazio)"
+                message=f"Falha ao salvar no S3: {error_reason}"
             )), 500
         
         result = {

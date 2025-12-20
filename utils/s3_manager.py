@@ -20,6 +20,7 @@ class S3Manager:
         self.bucket_name = bucket_name
         self.region = region
         self.s3_client = boto3.client('s3', region_name=region)
+        self.last_error = None
         logger.info(f"🪣 S3Manager inicializado - Bucket: {bucket_name}, Região: {region}")
     
     def test_connection(self) -> bool:
@@ -96,7 +97,14 @@ class S3Manager:
             return s3_key
             
         except ClientError as e:
-            logger.error(f"❌ Erro no upload S3: {e}")
+            error_msg = f"S3 Upload Error: {str(e)}"
+            logger.error(f"❌ {error_msg}")
+            self.last_error = error_msg
+            return None
+        except Exception as e:
+            error_msg = f"Unexpected Upload Error: {str(e)}"
+            logger.error(f"❌ {error_msg}")
+            self.last_error = error_msg
             return None
     
     def download_file(self, s3_key: str) -> Optional[bytes]:
