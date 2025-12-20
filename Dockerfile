@@ -1,5 +1,5 @@
 # Use Python 3.10 which has excellent compatibility with PyMuPDF wheels
-FROM python:3.10-slim
+FROM python:3.11-slim
 
 # Set working directory
 WORKDIR /app

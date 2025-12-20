@@ -139,10 +139,19 @@ def extract_text_from_pdf(pdf_bytes: bytes, max_pages: int = None) -> str:
             
             # Heurística: Se a página parece vazia de texto mas tem conteúdo visual (imagens), precisa de OCR
             # Se já tem bastante texto, confiamos no direto
-            needs_ocr = is_empty_or_short
+            
+            # CHECKPOINT: Verificar se é um documento com "camada falsa" de certificado digital
+            has_digital_cert_text = "Documento assinado com certificado digital" in clean_text
+            
+            if has_digital_cert_text:
+                logger.warning(f"⚠️ Detectado texto de certificado digital na página {page_num + 1}. Forçando OCR...")
+                needs_ocr = True
+            else:
+                needs_ocr = is_empty_or_short
             
             if needs_ocr:
-                logger.info(f"🔍 Página {page_num + 1}: Texto direto insuficiente ({len(clean_text)} chars). Aplicando OCR...")
+                msg_reason = "Texto de certificado digital detectado" if has_digital_cert_text else f"Texto direto insuficiente ({len(clean_text)} chars)"
+                logger.info(f"🔍 Página {page_num + 1}: {msg_reason}. Aplicando OCR...")
                 
                 try:
                     # Renderizar página como imagem de alta resolução (300 DPI é bom para OCR)

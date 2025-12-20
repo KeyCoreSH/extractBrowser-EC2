@@ -31,22 +31,51 @@ REGRAS CRÍTICAS:
 
 INFORMAÇÕES ESPECÍFICAS DO CNPJ:
 - CNPJ (formato xx.xxx.xxx/xxxx-xx)
-    "estado": "string - Estado (sigla)",
+- Razão Social e Nome Fantasia
+- Datas (Abertura, Situação)
+- Endereço e Contato
+- Sócios e Capital Social
+
+SCHEMA DO JSON DE RESPOSTA:
+{{
+  "cnpj": "string - CNPJ formatado",
+  "razao_social": "string - Razão Social",
+  "nome_fantasia": "string - Nome Fantasia",
+  "data_abertura": "string - Data de abertura",
+  "situacao_cadastral": "string - Situação (Ativa, etc)",
+  "data_situacao_cadastral": "string - Data da situação",
+  "natureza_juridica": "string - Código e descrição da natureza jurídica",
+  "atividades_economicas": [
+    {{
+      "codigo": "string - Código CNAE",
+      "descricao": "string - Descrição da atividade"
+    }}
+  ],
+  "endereco": {{
+    "logradouro": "string - Logradouro",
+    "numero": "string - Número",
+    "complemento": "string - Complemento",
+    "bairro": "string - Bairro",
+    "municipio": "string - Município",
+    "uf": "string - Estado (sigla)",
     "cep": "string - CEP"
+  }},
+  "contato": {{
+    "telefone_1": "string - Telefone principal",
+    "telefone_2": "string - Telefone secundário",
+    "email": "string - Email",
+    "celular": "string - Celular"
   }},
   "capital_social": "string - Capital social",
   "porte": "string - Porte da empresa",
-  "responsavel_federativo": "string - Ente federativo responsável",
+  "ente_federativo_responsavel": "string - Ente federativo se houver",
   "socios": [
     {{
       "nome": "string - Nome do sócio",
       "cpf_cnpj": "string - CPF ou CNPJ do sócio",
       "qualificacao": "string - Qualificação do sócio"
     }}
-  ],
-  "telefone": "string - Telefone se presente",
-  "email": "string - Email se presente",
-  "site": "string - Website se presente"
+  ]
 }}
 
 TEXTO DO DOCUMENTO CNPJ:

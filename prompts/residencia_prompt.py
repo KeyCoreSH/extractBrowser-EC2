@@ -20,35 +20,46 @@ def get_residencia_prompt(text: str) -> str:
     Retorne APENAS um JSON com a seguinte estrutura:
     
     {{
-        "tipo_conta": "ENERGIA" | "AGUA" | "TELECOM" | "GAS" | "OUTROS",
-        "emissor": {{
-            "nome_empresa": "Nome da Concessionária",
-            "cnpj": "CNPJ da Concessionária"
+        "tipo_documento": "CONTA_ENERGIA" | "CONTA_AGUA" | "CONTA_TELECOM" | "CONTA_GAS" | "OUTROS",
+        "concessionaria": {{
+            "nome": "string - Nome da Concessionária",
+            "cnpj": "string - CNPJ da Concessionária"
         }},
-        "fatura": {{
-            "mes_referencia": "MM/AAAA",
-            "vencimento": "AAAA-MM-DD",
-            "valor_total": 0.00,
-            "numero_instalacao": "...",
-            "codigo_cliente": "...",
-            "codigo_barras": "..."
+        "dados_conta": {{
+            "mes_referencia": "string - Mês de referência (MM/AAAA)",
+            "vencimento": "string - Data de vencimento (AAAA-MM-DD)",
+            "valor_total": "float - Valor total da fatura",
+            "numero_instalacao": "string - Número da instalação/inscrição",
+            "codigo_cliente": "string - Código do cliente/Matrícula",
+            "numero_nota_fiscal": "string - Número da Nota Fiscal",
+            "data_emissao": "string - Data de emissão",
+            "codigo_barras": "string - Linha digitável ou código de barras"
         }},
-        "titular": {{
-            "nome": "...",
-            "cpf_cnpj": "..."
+        "cliente": {{
+            "nome": "string - Nome do titular",
+            "cpf_cnpj": "string - CPF ou CNPJ do titular",
+             "numero_cliente": "string - Número de identificação do cliente"
         }},
         "endereco_instalacao": {{
-            "logradouro": "Rua/Av...",
-            "numero": "...",
-            "complemento": "...",
-            "bairro": "...",
-            "cidade": "...",
-            "uf": "..."
+            "logradouro": "string - Rua/Av",
+            "numero": "string - Número",
+            "complemento": "string - Complemento",
+            "bairro": "string - Bairro",
+            "municipio": "string - Cidade",
+            "uf": "string - UF",
+            "cep": "string - CEP"
         }},
         "leituras": {{
-            "leitura_atual": "...",
-            "leitura_anterior": "...",
-            "consumo": "..."
-        }}
+            "leitura_atual": "string - Data/Valor Leitura Atual",
+            "leitura_anterior": "string - Data/Valor Leitura Anterior",
+            "proxima_leitura": "string - Previsão próxima leitura",
+            "consumo_faturado": "string - Consumo total faturado (kWh, m³)"
+        }},
+        "historico_consumo": [
+            {{
+                "mes": "string - Mês/Ano",
+                "consumo": "string - Valor consumido"
+            }}
+        ]
     }}
     """

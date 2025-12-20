@@ -49,4 +49,21 @@ SCHEMA DO JSON DE RESPOSTA:
   "cpf": "string - CPF formatado (xxx.xxx.xxx-xx)",
   "rg": "string - Número do RG/Registro",
   "data_nascimento": "string - Data no formato DD/MM/AAAA",
+  "data_emissao": "string - Data no formato DD/MM/AAAA",
+  "data_validade": "string - Data no formato DD/MM/AAAA",
+  "categoria": "string - Categoria habilitada",
+  "numero_registro": "string - Número do registro da CNH",
+  "local_emissao": "string - Cidade/UF de emissão",
+  "filiacao": {{
+    "pai": "string - Nome do pai",
+    "mae": "string - Nome da mãe"
+  }},
+  "endereco": "string - Endereço completo se disponível",
+  "observacoes": "string - Observações como EAR etc"
+}}
+
+TEXTO DA CNH:
+{text}
+
+Retorne apenas o JSON estruturado:
 """

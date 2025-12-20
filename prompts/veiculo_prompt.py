@@ -20,36 +20,44 @@ def get_veiculo_prompt(text: str) -> str:
     Retorne APENAS um JSON com a seguinte estrutura:
     
     {{
+        "tipo_documento": "CRLV" | "CRV" | "FICHA_CADASTRAL",
         "dados_veiculo": {{
-            "placa": "...",
-            "placa_anterior": "...",
-            "chassi": "...",
-            "renavam": "...",
-            "marca_modelo": "...",
-            "ano_fabricacao": 0000,
-            "ano_modelo": 0000,
-            "cor": "...",
-            "combustivel": "...",
-            "categoria": "...",
-            "especie": "...",
-            "tipo": "...",
-            "potencia": "...",
-            "cilindrada": "...",
-            "motor": "...",
-            "lotacao": "...",
-            "peso_bruto_total": "..."
+            "placa": "string - Placa do veículo",
+            "placa_anterior": "string - Placa anterior se houver",
+            "chassi": "string - Chassi",
+            "renavam": "string - Código Renavam",
+            "marca_modelo": "string - Marca/Modelo/Versão",
+            "ano_fabricacao": "integer - Ano Fabricação",
+            "ano_modelo": "integer - Ano Modelo",
+            "cor": "string - Cor predominante",
+            "combustivel": "string - Combustível",
+            "categoria": "string - Categoria (Aluguel, Particular)",
+            "especie_tipo": "string - Espécie/Tipo (Carga/Semi-reboque, etc)",
+            "carroceria": "string - Tipo de carroceria",
+            "potencia_cilindrada": "string - Potência/Cilindrada",
+            "motor": "string - Número do motor",
+            "lotacao": "string - Lotação",
+            "peso_bruto_total": "string - Peso Bruto Total (PBT)",
+            "cap_max_tracao": "string - Capacidade Máxima Tração (CMT)",
+            "numero_eixos": "string - Número de eixos"
         }},
         "situacao": {{
-            "exercicio": "ANO",
-            "restricoes": ["alienacao", "restricao_judicial", "roubo_furto", ...],
-            "observacoes": "..."
+            "exercicio": "string - Exercício (Ano)",
+            "data_emissao": "string - Data de emissão",
+            "local_emissao": "string - Local de emissão",
+            "observacoes": "string - Observações do veículo",
+            "mensagem_senatran": "string - Mensagens do Senatran"
         }},
         "proprietario": {{
-            "nome": "...",
-            "cpf_cnpj": "...",
-            "endereco": "...",
-            "cidade": "...",
-            "uf": "..."
+            "nome": "string - Nome do proprietário",
+            "cpf_cnpj": "string - CPF ou CNPJ",
+            "local": "string - Local/Cidade",
+            "uf": "string - Estado"
+        }},
+        "seguro_dpvat": {{
+             "categoria_tarifaria": "string",
+             "data_quitacao": "string",
+             "valor_total": "string"
         }}
     }}
     """

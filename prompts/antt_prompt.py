@@ -38,22 +38,29 @@ def get_antt_prompt(text: str) -> str:
     {{
         "tipo_documento": "CERTIFICADO_ANTT" | "EXTRATO_ANTT",
         "transportador": {{
-            "rntrc": "string",
-            "razao_social_nome": "string",
-            "cpf_cnpj": "string (apenas números)",
-            "situacao": "string",
-            "categoria": "string",
-            "data_validade": "AAAA-MM-DD",
-            "data_emissao": "AAAA-MM-DD"
+            "rntrc": "string - RNTRC encontrado",
+            "razao_social_nome": "string - Nome ou Razão Social",
+            "cpf_cnpj": "string - CPF ou CNPJ (apenas números)",
+            "situacao_rntrc": "string - Situação do RNTRC (Ativo/Suspenso)",
+            "categoria": "string - Categoria (ETC, TAC, CTC)",
+            "data_cadastro": "string - Data de cadastro",
+            "data_validade": "string - Data de validade se houver",
+            "data_emissao": "string - Data de emissão do documento"
         }},
         "endereco": {{
-            "logradouro": "string",
-            "numero": "string",
-            "complemento": "string",
-            "bairro": "string",
-            "cidade": "string",
-            "uf": "string",
-            "cep": "string"
+            "logradouro": "string - Logradouro completo",
+            "numero": "string - Número",
+            "complemento": "string - Complemento",
+            "bairro": "string - Bairro",
+            "cidade": "string - Município",
+            "uf": "string - UF",
+            "cep": "string - CEP"
+        }},
+        "resumo_frota": {{
+            "total_veiculos": "integer - Total de veículos",
+            "veiculos_ativos": "integer - Total ativos",
+            "veiculos_automotores": "integer - Qtd automotores",
+            "veiculos_implementos": "integer - Qtd implementos"
         }},
         "responsavel_tecnico": {{
             "nome": "string",
@@ -61,11 +68,12 @@ def get_antt_prompt(text: str) -> str:
         }},
         "veiculos": [
             {{
-                "placa": "string",
-                "renavam": "string",
-                "tipo": "string",
-                "tipo_carroceria": "string (ex: CAMINHÃO TRATOR)",
-                "situacao": "string"
+                "placa": "string - Placa do veículo",
+                "renavam": "string - Renavam",
+                "tipo": "string - Tipo (Automotor/Implemento)",
+                "tipo_carroceria": "string - Descrição/Carroceria",
+                "situacao": "string - Situação (Ativo/Outro)",
+                "propriedade": "string - Propriedade (Arrendado/Próprio/Leasing)"
             }}
         ]
     }}
