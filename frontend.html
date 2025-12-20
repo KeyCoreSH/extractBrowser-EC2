@@ -418,7 +418,8 @@
         // Verificar status da API
         async function checkHealth() {
             try {
-                const response = await fetch(`${API_BASE_URL}/health`);
+                // Usando /app-health para evitar interceptação do Nginx/LB na rota /health
+                const response = await fetch(`${API_BASE_URL}/app-health`);
                 const text = await response.text();
 
                 let data;

@@ -366,6 +366,7 @@ def logout():
     '''
 
 @app.route('/health', methods=['GET'])
+@app.route('/app-health', methods=['GET'])
 def health_check():
     """Endpoint de health check"""
     status = {
