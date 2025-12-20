@@ -419,7 +419,24 @@
         async function checkHealth() {
             try {
                 const response = await fetch(`${API_BASE_URL}/health`);
-                const data = await response.json();
+                const text = await response.text();
+
+                let data;
+                try {
+                    data = JSON.parse(text);
+                } catch (e) {
+                    // Se não for JSON, verificar se é "ok" (Nginx/LB heartbeat)
+                    if (text.trim().toLowerCase() === 'ok') {
+                        const statusEl = document.getElementById('healthStatus');
+                        statusEl.innerHTML = `
+                            <strong>Status:</strong> Online (Simple) | 
+                            <strong>Services:</strong> ❓ (Check logs)
+                        `;
+                        statusEl.className = 'status success';
+                        return;
+                    }
+                    throw new Error(`Invalid response: ${text.substring(0, 50)}`);
+                }
 
                 const statusEl = document.getElementById('healthStatus');
                 const deps = data.dependencies;
@@ -440,8 +457,9 @@
                 statusEl.innerHTML = statusHtml;
                 statusEl.className = 'status success';
             } catch (error) {
+                console.error('Health Check Error:', error);
                 document.getElementById('healthStatus').innerHTML =
-                    '❌ Erro de conexão com o servidor';
+                    `❌ Erro de conexão: ${error.message}`;
                 document.getElementById('healthStatus').className = 'status error';
             }
         }
