@@ -61,7 +61,37 @@ s3_manager = None
 ai_service = None
 
 # Configuração de Banco de Dados e Autenticação
-from flask_login import LoginManager, login_user, logout_user, login_required, current_user
+from flask_login import LoginManager, login_user, logout_user, login_required as base_login_required, current_user
+from functools import wraps
+
+# Decorator de login personalizado com suporte a API Key
+def login_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        # 1. Verificar API Key (Header X-API-Key ou Authorization)
+        api_token = os.getenv('API_ACCESS_TOKEN')
+        if api_token:
+            # Check X-API-Key header
+            request_key = request.headers.get('X-API-Key')
+            
+            # Check Authorization: Bearer <token>
+            if not request_key:
+                auth_header = request.headers.get('Authorization')
+                if auth_header and auth_header.startswith('Bearer '):
+                    request_key = auth_header.split(' ')[1]
+            
+            if request_key == api_token:
+                # Bypass login for valid API Key
+                return f(*args, **kwargs)
+        
+        # 2. Fallback para login de sessão padrão
+        if not current_user.is_authenticated:
+            if request.is_json:
+                return jsonify({'success': False, 'message': 'Authentication required'}), 401
+            return base_login_required(f)(*args, **kwargs)
+            
+        return f(*args, **kwargs)
+    return decorated_function
 from database import db, User, ExtractionLog
 from werkzeug.security import generate_password_hash, check_password_hash
 
