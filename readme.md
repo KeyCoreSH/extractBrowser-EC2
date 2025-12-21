@@ -63,6 +63,31 @@ Sistema inteligente de extração e estruturação de dados de documentos brasil
 
 ---
 
+## 🔐 Autenticação via API (Programática)
+
+Para acessar os endpoints (como `/upload`) programaticamente sem cookies de sessão, utilize a **API Token**.
+
+### Configuração
+Defina a variável `API_ACCESS_TOKEN` no seu `.env` ou nas variáveis de ambiente do servidor.
+
+### Exemplos de Uso
+
+**Opção 1: Header `X-API-Key`**
+```bash
+curl -X POST https://seu-dominio.com/upload \
+  -H "X-API-Key: sua-chave-aqui" \
+  -F "file=@documento.pdf"
+```
+
+**Opção 2: Header `Authorization` (Bearer)**
+```bash
+curl -X POST https://seu-dominio.com/upload \
+  -H "Authorization: Bearer sua-chave-aqui" \
+  -F "file=@documento.pdf"
+```
+
+---
+
 ## 📦 Schemas de Retorno (JSON Exato)
 
 O sistema garante que o retorno da API `/upload` siga estritamente os formatos abaixo dentro do campo `structured_data.data`.
