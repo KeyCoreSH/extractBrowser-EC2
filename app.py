@@ -43,15 +43,24 @@ AWS_REGION = os.environ.get('AWS_REGION', 'us-east-2')
 
 # Inicializar Flask
 app = Flask(__name__)
-CORS(app, origins=['*'])  # Permitir todas as origens por enquanto
+CORS(app, resources={r"/*": {"origins": "*"}})
+
+@app.after_request
+def after_request(response):
+    response.headers.add('Access-Control-Allow-Origin', '*')
+    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization,X-API-Key')
+    response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
+    return response
+
 # Configurar headers de segurança com Talisman
-# CSP permissiva para permitir estilos inline e CDNs externos (Font Awesome)
+# CSP permissiva para permitir estilos inline, CDNs externos e requisições cross-origin
 csp = {
-    'default-src': ["'self'", "'unsafe-inline'", 'data:', 'blob:'],
-    'script-src': ["'self'", "'unsafe-inline'", "'unsafe-eval'", 'https://cdnjs.cloudflare.com'],
-    'style-src': ["'self'", "'unsafe-inline'", 'https://cdnjs.cloudflare.com', 'https://fonts.googleapis.com'],
-    'font-src': ["'self'", 'data:', 'https://cdnjs.cloudflare.com', 'https://fonts.gstatic.com'],
-    'img-src': ["'self'", 'data:', 'blob:', 'https://*.amazonaws.com']
+    'default-src': ["'self'", "'unsafe-inline'", 'data:', 'blob:', '*'],
+    'script-src': ["'self'", "'unsafe-inline'", "'unsafe-eval'", '*'],
+    'connect-src': ["'self'", '*'],
+    'style-src': ["'self'", "'unsafe-inline'", '*'],
+    'font-src': ["'self'", 'data:', '*'],
+    'img-src': ["'self'", 'data:', 'blob:', '*']
 }
 # Desabilitar session_cookie_secure para rodar em HTTP localmente
 Talisman(app, force_https=False, content_security_policy=csp, session_cookie_secure=False)
