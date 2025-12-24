@@ -1,0 +1,23 @@
+name: Notify n8n
+
+on: [push]
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call n8n webhook
+        env:
+          N8N_WEBHOOK_URL: ${{ secrets.N8N_WEBHOOK_URL }}
+        run: |
+          curl -sS -X POST "$N8N_WEBHOOK_URL" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "repo": "'"${{ github.repository }}"'",
+              "ref": "'"${{ github.ref }}"'",
+              "sha": "'"${{ github.sha }}"'",
+              "actor": "'"${{ github.actor }}"'",
+              "event": "'"${{ github.event_name }}"'",
+              "message": "'"${{ github.event.head_commit.message }}"'"
+            }'
+
