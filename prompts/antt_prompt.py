@@ -16,6 +16,7 @@ def get_antt_prompt(text: str) -> str:
     Instruções de Extração:
     1. CABEÇALHO: Procure por pares Chave/Valor.
        Ex: "RNTRC:" seguido de números. "RAZÃO SOCIAL:" seguido do nome. "CNPJ:" seguido do número.
+    1.1 NÃO altere nomes de campos e não adicione campos fora do schema.
     
     2. VEÍCULOS (Parte mais importante):
        O texto dos veículos costuma aparecer em blocos sequenciais ou misturados.
@@ -31,6 +32,8 @@ def get_antt_prompt(text: str) -> str:
     
     3. ENDEREÇO:
        Procure por Logradouro, Bairro, CEP (xxxxx-xxx) e Cidade/UF.
+       Separe por campo: `logradouro`, `numero`, `complemento`, `bairro`, `cidade`, `uf`, `cep`.
+       CEP deve conter somente `NNNNN-NNN` (ou `NNNNNNNN` normalizado), nunca endereço completo.
     
     Retorne APENAS um JSON válido. Não inclua markdown ```json`.
     

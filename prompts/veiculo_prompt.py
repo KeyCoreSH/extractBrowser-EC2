@@ -16,6 +16,15 @@ def get_veiculo_prompt(text: str) -> str:
     1. Identifique os dados principais do veículo e do proprietário.
     2. Normalize datas para AAAA-MM-DD.
     3. Extraia informações técnicas detalhadas se disponíveis.
+    4. NÃO altere nomes de campos nem estrutura do JSON de resposta.
+    5. Para campos de endereço, separe cada componente corretamente:
+       - `logradouro`: via sem número
+       - `numero`: somente número (ou `SN` quando explícito)
+       - `complemento`: bloco/apto/sala quando existir
+       - `bairro`, `municipio`/`cidade`, `uf`, `cep`
+    6. Para CEP, extraia apenas padrão `NNNNN-NNN` (ou `NNNNNNNN` normalizado para `NNNNN-NNN`).
+       Nunca coloque endereço completo no campo CEP.
+    7. Se um valor não estiver claro, use null (não invente).
     
     Retorne APENAS um JSON com a seguinte estrutura:
     

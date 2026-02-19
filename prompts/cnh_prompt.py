@@ -28,6 +28,8 @@ REGRAS CRÍTICAS:
 6. Se não encontrar uma informação, use null para o campo
 7. Mantenha a estrutura exata do schema fornecido.
 8. TODOS os campos do schema DEVEM estar presentes no JSON, use null se não encontrar o valor.
+9. NÃO altere nomes de campos e não adicione campos extras.
+10. Para endereço em string única, preserve o texto em `endereco`, sem quebrar schema.
 
 INFORMAÇÕES ESPECÍFICAS DA CNH:
 - Nome completo do portador

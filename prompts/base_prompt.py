@@ -37,8 +37,12 @@ REGRAS CRÍTICAS:
 4. O JSON deve ser 100% válido, sem vírgulas finais
 5. Use aspas duplas para todas as chaves e valores string
 6. Se não encontrar uma informação, use null para o campo
-40. 7. Mantenha a estrutura exata do schema fornecido.
-41. 8. TODOS os campos do schema DEVEM estar presentes no JSON, use null se não encontrar o valor.
+7. Mantenha a estrutura exata do schema fornecido.
+8. TODOS os campos do schema DEVEM estar presentes no JSON, use null se não encontrar o valor.
+9. NÃO altere nomes de campos e NÃO adicione campos extras.
+10. Campos de endereço devem ser decompostos corretamente quando o schema tiver subcampos.
+11. CEP deve conter somente `NNNNN-NNN` (ou `NNNNNNNN` normalizado), nunca endereço completo.
+12. Se houver ambiguidade, priorize precisão: use null em vez de inventar.
 
 SCHEMA DO JSON DE RESPOSTA:
 {schema}

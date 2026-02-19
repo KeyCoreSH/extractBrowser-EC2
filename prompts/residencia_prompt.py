@@ -14,8 +14,15 @@ def get_residencia_prompt(text: str) -> str:
     
     Instruções:
     1. Identifique a concessionária/empresa emissora.
-    2. Identifique o titular e o endereço COMPLETO.
+    2. Identifique o titular e o endereço.
     3. Normalize datas para AAAA-MM-DD e valores numéricos (float, separado por ponto).
+    4. NÃO altere nomes de campos nem estrutura do JSON de resposta.
+    5. Endereço deve ser decomposto por campo (sem concatenar tudo em um campo só):
+       - logradouro, numero, complemento, bairro, municipio, uf, cep.
+    6. CEP deve conter SOMENTE `NNNNN-NNN` (ou normalizar `NNNNNNNN` para `NNNNN-NNN`).
+       Nunca preencher CEP com endereço completo.
+    7. Se houver conflito entre múltiplos endereços, priorize `endereco_instalacao` da conta.
+    8. Se não houver evidência textual suficiente, usar null (sem inferência criativa).
     
     Retorne APENAS um JSON com a seguinte estrutura:
     

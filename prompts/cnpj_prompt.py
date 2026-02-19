@@ -28,6 +28,10 @@ REGRAS CRÍTICAS:
 6. Se não encontrar uma informação, use null para o campo
 7. Mantenha a estrutura exata do schema fornecido.
 8. TODOS os campos do schema DEVEM estar presentes no JSON, use null se não encontrar o valor.
+9. NÃO altere nomes de campos e NÃO adicione campos novos.
+10. Endereço deve ser decomposto por campo (logradouro, numero, complemento, bairro, municipio, uf, cep).
+11. CEP deve conter apenas `NNNNN-NNN` (ou `NNNNNNNN` normalizado para `NNNNN-NNN`).
+12. Nunca preencher `cep` com endereço completo.
 
 INFORMAÇÕES ESPECÍFICAS DO CNPJ:
 - CNPJ (formato xx.xxx.xxx/xxxx-xx)
