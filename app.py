@@ -10,11 +10,13 @@ import json
 import time
 import base64
 import logging
+import uuid
+from collections import defaultdict
 from datetime import datetime
 from typing import Dict, Any, Optional
 from pathlib import Path
 
-from flask import Flask, request, jsonify, send_file, render_template_string
+from flask import Flask, request, jsonify, send_file, render_template_string, g
 from flask_cors import CORS
 from flask_talisman import Talisman
 import boto3
@@ -40,16 +42,56 @@ logger = logging.getLogger(__name__)
 PORT = int(os.environ.get('PORT', 2345))
 S3_BUCKET = os.environ.get('S3_BUCKET', 'extractbrowser-ec2-documents')
 AWS_REGION = os.environ.get('AWS_REGION', 'us-east-2')
+APP_ENV = os.environ.get('APP_ENV', os.environ.get('FLASK_ENV', 'development')).lower()
+IS_PRODUCTION = APP_ENV == 'production'
+MAX_UPLOAD_MB = int(os.environ.get('MAX_UPLOAD_MB', 15))
+EXPOSE_INTERNAL_ERRORS = os.environ.get('EXPOSE_INTERNAL_ERRORS', 'false' if IS_PRODUCTION else 'true').lower() == 'true'
 
 # Inicializar Flask
 app = Flask(__name__)
+app.config['MAX_CONTENT_LENGTH'] = MAX_UPLOAD_MB * 1024 * 1024
 CORS(app, resources={r"/*": {"origins": "*"}})
+
+# Métricas simples em memória (baseline de observabilidade)
+REQUEST_METRICS = {
+    'total_requests': 0,
+    'status_counts': defaultdict(int),
+    'path_counts': defaultdict(int),
+    'total_latency_ms': 0
+}
+
+@app.before_request
+def before_request():
+    g.request_start_time = time.time()
+    g.request_id = request.headers.get('X-Request-ID') or str(uuid.uuid4())
+
 
 @app.after_request
 def after_request(response):
     response.headers.add('Access-Control-Allow-Origin', '*')
-    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization,X-API-Key')
+    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization,X-API-Key,X-Request-ID')
     response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
+    response.headers['X-Request-ID'] = getattr(g, 'request_id', '-')
+
+    start_time = getattr(g, 'request_start_time', None)
+    latency_ms = int((time.time() - start_time) * 1000) if start_time else 0
+
+    REQUEST_METRICS['total_requests'] += 1
+    REQUEST_METRICS['status_counts'][str(response.status_code)] += 1
+    REQUEST_METRICS['path_counts'][request.path] += 1
+    REQUEST_METRICS['total_latency_ms'] += latency_ms
+
+    logger.info(json.dumps({
+        'event': 'http_request',
+        'request_id': getattr(g, 'request_id', None),
+        'method': request.method,
+        'path': request.path,
+        'status_code': response.status_code,
+        'latency_ms': latency_ms,
+        'remote_addr': request.headers.get('X-Forwarded-For', request.remote_addr),
+        'user_agent': request.headers.get('User-Agent', '')[:120]
+    }, ensure_ascii=False))
+
     return response
 
 # Configurar headers de segurança com Talisman
@@ -63,7 +105,7 @@ csp = {
     'img-src': ["'self'", 'data:', 'blob:', '*']
 }
 # Desabilitar session_cookie_secure para rodar em HTTP localmente
-Talisman(app, force_https=False, content_security_policy=csp, session_cookie_secure=False)
+Talisman(app, force_https=IS_PRODUCTION, content_security_policy=csp, session_cookie_secure=IS_PRODUCTION)
 
 # Gerenciador S3 e Serviço de IA
 s3_manager = None
@@ -108,9 +150,12 @@ from werkzeug.security import generate_password_hash, check_password_hash
 db_path = os.path.join(os.getcwd(), 'data', 'extractbrowser.db')
 app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{db_path}'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'keycore-secret-key-change-me')
-app.config['SESSION_COOKIE_SECURE'] = False
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY') or ('dev-insecure-key' if not IS_PRODUCTION else os.urandom(32).hex())
+if IS_PRODUCTION and not os.environ.get('SECRET_KEY'):
+    logger.warning("⚠️ SECRET_KEY não definido em produção. Foi gerado temporariamente para este processo.")
+app.config['SESSION_COOKIE_SECURE'] = IS_PRODUCTION
 app.config['SESSION_COOKIE_HTTPONLY'] = True
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 
 db.init_app(app)
 login_manager = LoginManager()
@@ -130,13 +175,19 @@ def init_db():
         except Exception as e:
             logger.info(f"ℹ️ Tabelas já existem ou erro de concorrência: {e}")
 
+        admin_email = os.getenv('DEFAULT_ADMIN_EMAIL', 'adm@keycore.com.br')
+        admin_password = os.getenv('DEFAULT_ADMIN_PASSWORD')
+
         # Verificar se admin existe
-        admin = User.query.filter_by(email='adm@keycore.com.br').first()
+        admin = User.query.filter_by(email=admin_email).first()
         if not admin:
+            if not admin_password:
+                logger.warning("⚠️ Usuário admin não criado: defina DEFAULT_ADMIN_PASSWORD para bootstrap seguro.")
+                return
             try:
-                hashed_password = generate_password_hash('R0ger!n20100')
+                hashed_password = generate_password_hash(admin_password)
                 admin = User(
-                    email='adm@keycore.com.br',
+                    email=admin_email,
                     password_hash=hashed_password,
                     name='Admin KeyCore'
                 )
@@ -431,6 +482,47 @@ def health_check():
         status['bucket_files'] = len(s3_manager.list_files(max_keys=10))
     
     return jsonify(status)
+
+@app.errorhandler(413)
+def payload_too_large(_error):
+    return jsonify(create_standardized_response(
+        success=False,
+        message=f"Arquivo excede o limite de {MAX_UPLOAD_MB}MB"
+    )), 413
+
+
+@app.errorhandler(Exception)
+def handle_unexpected_error(error):
+    request_id = getattr(g, 'request_id', 'n/a')
+    logger.exception(f"❌ Erro não tratado | request_id={request_id}: {error}")
+
+    public_message = "Erro interno"
+    if EXPOSE_INTERNAL_ERRORS:
+        public_message = f"Erro interno: {str(error)}"
+
+    return jsonify(create_standardized_response(
+        success=False,
+        message=public_message
+    )), 500
+
+
+@app.route('/metrics', methods=['GET'])
+def metrics():
+    total_requests = REQUEST_METRICS['total_requests']
+    avg_latency = int(REQUEST_METRICS['total_latency_ms'] / total_requests) if total_requests else 0
+
+    return jsonify(create_standardized_response(
+        success=True,
+        message="Métricas coletadas com sucesso",
+        additional_data={
+            'environment': APP_ENV,
+            'total_requests': total_requests,
+            'avg_latency_ms': avg_latency,
+            'status_counts': dict(REQUEST_METRICS['status_counts']),
+            'top_paths': dict(sorted(REQUEST_METRICS['path_counts'].items(), key=lambda x: x[1], reverse=True)[:10])
+        }
+    ))
+
 
 @app.route('/upload', methods=['POST'])
 @login_required
