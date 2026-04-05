@@ -1,41 +1,37 @@
-# Use Python 3.10 which has excellent compatibility with PyMuPDF wheels
 FROM python:3.11-slim
 
-# Set working directory
 WORKDIR /app
 
-# Install system dependencies required for PyMuPDF and other tools
-# build-essential: for compiling C extensions
-# curl: for healthchecks
+# Instalar dependências de sistema (necessárias para compiladores C / PyMuPDF e requests)
 RUN apt-get update && apt-get install -y \
   build-essential \
   gcc \
   curl \
   && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements first to leverage Docker cache
+# Otimização de cache do Docker
 COPY requirements.txt .
 
-# Install Python dependencies
+# Instalar dependências Python
 RUN pip install --no-cache-dir --upgrade pip && \
   pip install --no-cache-dir -r requirements.txt
 
-# Copy application code
+# Copiar o restante da aplicação
 COPY . .
 
-# Create non-root user for security and setup data directory
+# Criar um usuário que não seja root (melhor prática de segurança)
 RUN useradd -m appuser && \
   mkdir -p /app/data && \
   chown -R appuser:appuser /app
+
+# Mudar o usuário e setar permissões
 USER appuser
 
-# Expose the port
-ENV PORT=2345
+# Exposição e Variáveis
+ENV PORT=2345 \
+    APP_ENV=production \
+    PYTHONUNBUFFERED=1
+
 EXPOSE 2345
 
-# Healthcheck
-HEALTHCHECK --interval=30s --timeout=3s \
-  CMD curl -f http://localhost:2345/health || exit 1
-
-# Command to run the application using Gunicorn
 CMD ["gunicorn", "--bind", "0.0.0.0:2345", "--workers", "2", "--timeout", "120", "app:app"]
